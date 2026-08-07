@@ -1,0 +1,18 @@
+:root {
+  --background: #f4efe6;
+  --background-secondary: #ebe5dc;
+  --foreground: #1a1a1a;
+  --foreground-muted: #4a4540;
+  --foreground-subtle: #7a746c;
+  --accent: #c4937e;
+  --accent-hover: #b07f6a;
+  --hero-wash: #e85d3a;
+  --border: color-mix(in srgb, #1a1a1a 12%, #f4efe6);
+  --border-strong: color-mix(in srgb, #1a1a1a 22%, #f4efe6);
+  --card: #f4efe6;
+  --ring: #c4937e;
+  --error: #b54a4a;
+
+  --theme-font-sans: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
+  --theme-font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+}

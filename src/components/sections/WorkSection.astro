@@ -1,0 +1,396 @@
+---
+import { Image, getImage } from 'astro:assets';
+import { content, galleryEvents } from '@/config/content';
+import { locales } from '@/config/site.config';
+
+function isLowCropEvent(event: { id: string; title: Record<string, string> }): boolean {
+  if (event.id === 'sopot') return true;
+  return Object.values(event.title).some((t) => /molo/i.test(t || ''));
+}
+
+const galleryItems = await Promise.all(
+  galleryEvents.map(async (event) => {
+    const src =
+      event.image.kind === 'remote'
+        ? event.image.src
+        : (await getImage({ src: event.image.meta, width: 1400, height: 1050, format: 'webp' })).src;
+    return {
+      id: event.id,
+      src,
+      video: event.video ?? null,
+      lowCrop: isLowCropEvent(event),
+      date: event.date,
+      title: event.title,
+      description: event.description,
+      alt: event.alt,
+    };
+  }),
+);
+---
+
+<section id="work" data-review-id="gallery-section" class="page-section border-t border-border">
+  <div class="container">
+    <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+      <div>
+        {locales.map((locale) => (
+          <p class="section-label mb-3" data-lang={locale}>{content.gallery[locale].label}</p>
+        ))}
+        <h2 class="font-display text-3xl text-foreground md:text-4xl">
+          {locales.map((locale) => (
+            <span data-lang={locale}>{content.gallery[locale].title}</span>
+          ))}
+        </h2>
+      </div>
+      <div class="flex items-end gap-4">
+        {locales.some((locale) => Boolean(content.gallery[locale].subtitle)) ? (
+          <p class="max-w-sm text-sm text-foreground-muted md:text-right">
+            {locales.map((locale) => (
+              <span data-lang={locale}>{content.gallery[locale].subtitle}</span>
+            ))}
+          </p>
+        ) : null}
+        {galleryEvents.length > 3 ? (
+          <div class="flex shrink-0 gap-2">
+            <button
+              type="button"
+              id="gallery-carousel-prev"
+              class="flex h-10 w-10 items-center justify-center border border-border text-foreground transition-colors hover:border-accent hover:text-accent"
+              aria-label="Previous"
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              id="gallery-carousel-next"
+              class="flex h-10 w-10 items-center justify-center border border-border text-foreground transition-colors hover:border-accent hover:text-accent"
+              aria-label="Next"
+            >
+              →
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </div>
+
+    {galleryEvents.length > 0 && (
+      <div
+        id="gallery-carousel"
+        class="mt-12 flex gap-6 overflow-x-auto scroll-smooth pb-2 [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
+      >
+        {galleryEvents.map((event, index) => (
+          <article
+            class="gallery-card group w-[min(100%,20rem)] shrink-0 cursor-pointer snap-start sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)]"
+            data-gallery-id={event.id}
+            role="button"
+            tabindex="0"
+            aria-label={event.title.en?.trim() ? `View ${event.title.en}` : `View portfolio photo`}
+          >
+            <div class="overflow-hidden">
+              {event.image.kind === 'local' ? (
+                <Image
+                  src={event.image.meta}
+                  alt={event.alt.en}
+                  widths={[480, 720, 960]}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  class:list={[
+                    'aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]',
+                    isLowCropEvent(event) && 'object-[center_42%]',
+                  ]}
+                  loading={index < 3 ? 'eager' : 'lazy'}
+                />
+              ) : (
+                <img
+                  src={event.image.src}
+                  alt={event.alt.en}
+                  class:list={[
+                    'aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]',
+                    isLowCropEvent(event) && 'object-[center_42%]',
+                  ]}
+                  loading={index < 3 ? 'eager' : 'lazy'}
+                />
+              )}
+            </div>
+            {(locales.some((locale) => Boolean(event.title[locale]?.trim())) || event.date) ? (
+              <div class="mt-4">
+                {locales.some((locale) => Boolean(event.title[locale]?.trim())) ? (
+                  <h3 class="font-display text-base text-foreground md:text-lg">
+                    {locales.map((locale) => (
+                      <span data-lang={locale}>{event.title[locale]}</span>
+                    ))}
+                  </h3>
+                ) : null}
+                {event.date ? (
+                  <p class="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-accent">{event.date}</p>
+                ) : null}
+              </div>
+            ) : null}
+          </article>
+        ))}
+      </div>
+    )}
+  </div>
+
+  <div
+    id="gallery-lightbox"
+    class="fixed inset-0 z-[100] hidden items-center justify-center p-4 md:p-8"
+    role="dialog"
+    aria-modal="true"
+    aria-hidden="true"
+  >
+    <div id="gallery-lightbox-backdrop" class="absolute inset-0 bg-foreground/55 backdrop-blur-sm"></div>
+
+    <div
+      id="gallery-lightbox-panel"
+      class="relative z-10 flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden border border-border-strong bg-background shadow-[0_32px_80px_-24px_rgba(26,26,26,0.35)] md:max-h-[85vh] md:flex-row"
+    >
+      <button
+        type="button"
+        id="gallery-lightbox-close"
+        class="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center border border-border bg-background/95 text-foreground transition-colors hover:bg-accent hover:text-background"
+        aria-label="Close"
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+      </button>
+
+      <div id="gallery-lightbox-media" class="relative min-h-[220px] bg-background-secondary md:min-h-0 md:w-1/2">
+        <img id="gallery-lightbox-image" src="" alt="" class="h-full w-full object-cover object-center" />
+        <video
+          id="gallery-lightbox-video"
+          class="hidden h-full w-full object-cover object-center"
+          controls
+          playsinline
+          preload="metadata"
+        ></video>
+
+        <button
+          type="button"
+          id="gallery-lightbox-prev"
+          class="absolute left-3 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center border border-border bg-background/95 text-foreground shadow-sm transition-colors hover:bg-accent hover:text-background flex"
+          aria-label="Previous"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="block shrink-0">
+            <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+
+        <button
+          type="button"
+          id="gallery-lightbox-next"
+          class="absolute right-3 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center border border-border bg-background/95 text-foreground shadow-sm transition-colors hover:bg-accent hover:text-background flex"
+          aria-label="Next"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="block shrink-0">
+            <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+
+        <p
+          id="gallery-lightbox-slide-label"
+          class="absolute top-3 left-1/2 z-10 hidden -translate-x-1/2 border border-border/80 bg-background/95 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-foreground-subtle"
+        ></p>
+      </div>
+
+      <div class="flex flex-col justify-center overflow-y-auto p-6 md:w-1/2 md:p-8">
+        <p id="gallery-lightbox-date" class="section-label"></p>
+        <h3 id="gallery-lightbox-title" class="mt-2 font-display text-2xl text-foreground md:text-3xl"></h3>
+        <p id="gallery-lightbox-description" class="mt-4 text-base leading-relaxed text-foreground-muted"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script is:inline define:vars={{ galleryItems }}>
+  const track = document.getElementById('gallery-carousel');
+  const carouselPrev = document.getElementById('gallery-carousel-prev');
+  const carouselNext = document.getElementById('gallery-carousel-next');
+
+  function scrollByCard(direction) {
+    if (!track) return;
+    const card = track.querySelector('.gallery-card');
+    if (!card) return;
+    const gap = 24;
+    const delta = (card.getBoundingClientRect().width + gap) * direction;
+    track.scrollBy({ left: delta, behavior: 'smooth' });
+  }
+
+  carouselPrev?.addEventListener('click', () => scrollByCard(-1));
+  carouselNext?.addEventListener('click', () => scrollByCard(1));
+
+  const lightbox = document.getElementById('gallery-lightbox');
+  const backdrop = document.getElementById('gallery-lightbox-backdrop');
+  const panel = document.getElementById('gallery-lightbox-panel');
+  const closeBtn = document.getElementById('gallery-lightbox-close');
+  const mediaEl = document.getElementById('gallery-lightbox-media');
+  const imageEl = document.getElementById('gallery-lightbox-image');
+  const videoEl = document.getElementById('gallery-lightbox-video');
+  const prevBtn = document.getElementById('gallery-lightbox-prev');
+  const nextBtn = document.getElementById('gallery-lightbox-next');
+  const slideLabel = document.getElementById('gallery-lightbox-slide-label');
+  const titleEl = document.getElementById('gallery-lightbox-title');
+  const dateEl = document.getElementById('gallery-lightbox-date');
+  const descEl = document.getElementById('gallery-lightbox-description');
+
+  if (
+    lightbox && backdrop && panel && closeBtn && mediaEl && imageEl && videoEl &&
+    prevBtn && nextBtn && slideLabel && titleEl && dateEl && descEl
+  ) {
+    const itemsById = Object.fromEntries(galleryItems.map((item) => [item.id, item]));
+    let activeItem = null;
+    let activeSlide = 0;
+    let touchStartX = 0;
+
+    const slideLabels = {
+      en: { photo: 'Photo', video: 'Video', of: 'of' },
+      pl: { photo: 'Zdjęcie', video: 'Wideo', of: 'z' },
+      es: { photo: 'Foto', video: 'Video', of: 'de' },
+    };
+
+    function getLocale() {
+      const locale = document.documentElement.dataset.locale;
+      if (locale === 'pl' || locale === 'es') return locale;
+      return 'en';
+    }
+
+    function hasVideo(item) {
+      return Boolean(item?.video);
+    }
+
+    function pauseVideo() {
+      videoEl.pause();
+      videoEl.currentTime = 0;
+      videoEl.removeAttribute('src');
+      videoEl.load();
+    }
+
+    function updateSlideUI() {
+      const locale = getLocale();
+      const labels = slideLabels[locale];
+      const itemHasVideo = hasVideo(activeItem);
+
+      prevBtn.classList.toggle('hidden', !itemHasVideo);
+      nextBtn.classList.toggle('hidden', !itemHasVideo);
+      slideLabel.classList.toggle('hidden', !itemHasVideo);
+
+      if (!itemHasVideo) {
+        imageEl.classList.remove('hidden');
+        videoEl.classList.add('hidden');
+        pauseVideo();
+        return;
+      }
+
+      if (activeSlide === 0) {
+        imageEl.classList.remove('hidden');
+        videoEl.classList.add('hidden');
+        pauseVideo();
+        slideLabel.textContent = `${labels.photo} 1 ${labels.of} 2`;
+      } else {
+        imageEl.classList.add('hidden');
+        videoEl.classList.remove('hidden');
+        if (videoEl.getAttribute('src') !== activeItem.video) {
+          videoEl.src = activeItem.video;
+          videoEl.load();
+        }
+        slideLabel.textContent = `${labels.video} 2 ${labels.of} 2`;
+      }
+    }
+
+    function openLightbox(id) {
+      const item = itemsById[id];
+      if (!item) return;
+
+      activeItem = item;
+      activeSlide = 0;
+
+      const locale = getLocale();
+      imageEl.src = item.src;
+      imageEl.alt = item.alt[locale];
+      imageEl.classList.toggle('object-[center_42%]', Boolean(item.lowCrop));
+      imageEl.classList.toggle('object-center', !item.lowCrop);
+      titleEl.textContent = item.title[locale] || '';
+      dateEl.textContent = item.date || '';
+      descEl.textContent = item.description[locale] || '';
+      titleEl.classList.toggle('hidden', !String(item.title[locale] || '').trim());
+      dateEl.classList.toggle('hidden', !String(item.date || '').trim());
+      descEl.classList.toggle('hidden', !String(item.description[locale] || '').trim());
+
+      updateSlideUI();
+
+      lightbox.classList.remove('hidden');
+      lightbox.classList.add('flex');
+      lightbox.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      closeBtn.focus();
+    }
+
+    function closeLightbox() {
+      lightbox.classList.add('hidden');
+      lightbox.classList.remove('flex');
+      lightbox.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      imageEl.src = '';
+      pauseVideo();
+      activeItem = null;
+      activeSlide = 0;
+    }
+
+    function goToSlide(index) {
+      if (!hasVideo(activeItem)) return;
+      activeSlide = index === 0 ? 0 : 1;
+      updateSlideUI();
+    }
+
+    function goNext() {
+      if (!hasVideo(activeItem)) return;
+      goToSlide(activeSlide === 0 ? 1 : 0);
+    }
+
+    function goPrev() {
+      if (!hasVideo(activeItem)) return;
+      goToSlide(activeSlide === 0 ? 1 : 0);
+    }
+
+    document.querySelectorAll('.gallery-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        const id = card.getAttribute('data-gallery-id');
+        if (id) openLightbox(id);
+      });
+      card.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          const id = card.getAttribute('data-gallery-id');
+          if (id) openLightbox(id);
+        }
+      });
+    });
+
+    prevBtn.addEventListener('click', (e) => { e.stopPropagation(); goPrev(); });
+    nextBtn.addEventListener('click', (e) => { e.stopPropagation(); goNext(); });
+
+    mediaEl.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0]?.clientX ?? 0;
+    }, { passive: true });
+
+    mediaEl.addEventListener('touchend', (e) => {
+      if (!hasVideo(activeItem)) return;
+      const touchEndX = e.changedTouches[0]?.clientX ?? 0;
+      const delta = touchEndX - touchStartX;
+      if (Math.abs(delta) < 40) return;
+      if (delta < 0) goNext();
+      else goPrev();
+    }, { passive: true });
+
+    closeBtn.addEventListener('click', closeLightbox);
+    backdrop.addEventListener('click', closeLightbox);
+    panel.addEventListener('click', (e) => e.stopPropagation());
+    lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+
+    document.addEventListener('keydown', (e) => {
+      if (lightbox.classList.contains('hidden')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') goNext();
+      if (e.key === 'ArrowLeft') goPrev();
+    });
+  }
+</script>

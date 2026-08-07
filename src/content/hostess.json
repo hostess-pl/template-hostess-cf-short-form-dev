@@ -1,0 +1,91 @@
+{
+  "submissionId": "template-stub",
+  "slug": "hostess-template",
+  "contactRef": "",
+  "profile": {
+    "displayName": "Hostess",
+    "legalName": "Hostess Template",
+    "email": "ops@hostesswebs.pl",
+    "phone": "",
+    "location": "City",
+    "workCities": [],
+    "socials": {
+      "instagram": "",
+      "tiktok": "",
+      "linkedin": "",
+      "facebook": ""
+    },
+    "professionalStatus": ""
+  },
+  "bio": {
+    "short": "Profesjonalna hostessa eventowa."
+  },
+  "locales": [
+    "pl"
+  ],
+  "languages": [
+    {
+      "name": "Język angielski",
+      "level": "B2"
+    }
+  ],
+  "languageCompetencies": [
+    "Język angielski"
+  ],
+  "skills": [
+    "Reprezentacja marki"
+  ],
+  "traits": [
+    "Profesjonalizm",
+    "Punktualność"
+  ],
+  "appearance": {
+    "height": "",
+    "dressSize": "",
+    "hairColor": "",
+    "eyeColor": ""
+  },
+  "mobility": {
+    "drivingLicense": "",
+    "hasCar": false
+  },
+  "employment": [],
+  "events": [],
+  "experience": {
+    "since": "",
+    "brands": "",
+    "eventTypes": ""
+  },
+  "education": {
+    "entries": [],
+    "university": "",
+    "field": "",
+    "isStudent": false
+  },
+  "branding": {
+    "palette": "",
+    "style": "Nowoczesne",
+    "font": "",
+    "themeColor": "#C4A46B",
+    "backgroundColor": "#FDFAF6",
+    "templateKey": "modern",
+    "templateRepo": "template-hostess-cf-modern"
+  },
+  "domain": {
+    "mode": "",
+    "address": "",
+    "desiredName": "",
+    "extension": ""
+  },
+  "extras": {
+    "englishVersion": false,
+    "spanishVersion": false,
+    "eventVideos": false
+  },
+  "analytics": {
+    "siteId": "hostess-template",
+    "subprojectId": "portfolio"
+  },
+  "templateKey": "minimal",
+  "templateRepo": "template-hostess-cf"
+}

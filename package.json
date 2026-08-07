@@ -1,0 +1,67 @@
+{
+  "name": "hostess-template-short-form",
+  "version": "1.0.0",
+  "description": "Short-form MVP hostess portfolio tip (draft\u2192publish). Isolated from live tip mains.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "dev:local": "cross-env ASTRO_DEV_NODE=1 astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "deploy": "wrangler deploy",
+    "deploy:local": "astro build && wrangler deploy",
+    "deploy:preview": "node ./scripts/deploy-preview.mjs",
+    "deploy:production": "node ./scripts/deploy-production.mjs",
+    "provision": "node ./scripts/provision-from-payload.mjs",
+    "prebuild": "node scripts/ensure-public-supabase-env.mjs && node scripts/generate-static-assets-manifest.mjs",
+    "cms:seed": "node scripts/seed-cms-from-hostess.mjs",
+    "cms:invite": "node scripts/invite-cms-owner.mjs",
+    "cms:login-link": "node scripts/generate-cms-login-link.mjs",
+    "deploy:cms-verify": "node scripts/deploy-cms-verify.mjs",
+    "test:completion": "node --experimental-strip-types scripts/test/portfolioCompletion.test.mjs"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^13.0.0",
+    "@astrojs/node": "^11.0.2",
+    "@astrojs/sitemap": "^3.7.1",
+    "@fontsource-variable/dm-sans": "^5.2.8",
+    "@fontsource/playfair-display": "^5.2.8",
+    "@supabase/supabase-js": "^2.49.8",
+    "astro": "^6.3.1",
+    "clsx": "^2.1.1",
+    "resend": "^6.12.3",
+    "tailwind-merge": "^2.6.0",
+    "@astrojs/react": "^4.4.2",
+    "@supabase/ssr": "^0.6.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.7",
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "^22.10.0",
+    "cross-env": "^10.1.0",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^4.112.0",
+    "zod": "^4.4.3",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "workerd"
+    ],
+    "overrides": {
+      "workerd": ">=1.20260708.1"
+    }
+  }
+}

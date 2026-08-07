@@ -1,0 +1,17 @@
+node_modules
+.astro
+dist
+.git
+.github
+.cursor
+.vscode
+coverage
+playwright-report
+test-results
+*.log
+.DS_Store
+README.md
+info
+portfolio_pics
+.env
+.env.local

@@ -1,0 +1,20 @@
+---
+import Navbar from '@/components/Navbar.astro';
+import Footer from '@/components/Footer.astro';
+import { showExperienceSection } from '@/config/content';
+import HeroSection from '@/components/sections/HeroSection.astro';
+import WorkSection from '@/components/sections/WorkSection.astro';
+import AboutSection from '@/components/sections/AboutSection.astro';
+import ExperienceSection from '@/components/sections/ExperienceSection.astro';
+import ContactSection from '@/components/sections/ContactSection.astro';
+---
+
+<Navbar />
+<main>
+  <HeroSection />
+  <WorkSection />
+  <AboutSection />
+  {showExperienceSection ? <ExperienceSection /> : null}
+  <ContactSection />
+</main>
+<Footer />

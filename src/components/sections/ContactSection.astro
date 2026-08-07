@@ -1,0 +1,75 @@
+---
+import siteConfig from '@/config/site.config';
+import { content } from '@/config/content';
+import ContactForm from '@/components/ui/forms/ContactForm.astro';
+import SocialIcon from '@/components/ui/SocialIcon.astro';
+import { locales } from '@/config/site.config';
+import { loadHostess } from '@/lib/hostess';
+
+const hostess = loadHostess();
+const phone = hostess.profile.phone?.trim();
+const socials = [
+  { name: 'instagram' as const, url: siteConfig.instagram, label: 'Instagram' },
+  { name: 'facebook' as const, url: siteConfig.facebook, label: 'Facebook' },
+  { name: 'tiktok' as const, url: siteConfig.tiktok, label: 'TikTok' },
+  { name: 'linkedin' as const, url: siteConfig.linkedin, label: 'LinkedIn' },
+].filter((s) => Boolean(String(s.url || '').trim()));
+---
+
+<section id="contact" data-review-id="contact-section" class="page-section border-t border-border">
+  <div class="container section-split">
+    <div>
+      {locales.map((locale) => (
+        <p class="section-label mb-4" data-lang={locale}>{content.contact[locale].label}</p>
+      ))}
+
+      <h2 class="font-display text-[clamp(1.75rem,4vw,2.75rem)] leading-[1.1] text-foreground">
+        {locales.map((locale) => (
+          <span data-lang={locale}>
+            {content.contact[locale].titleLead}{' '}
+            <em class="font-normal italic">{content.contact[locale].titleEmphasis}</em>
+          </span>
+        ))}
+      </h2>
+
+      <div class="mt-8 space-y-4">
+        <a
+          href={`mailto:${siteConfig.email}`}
+          data-review-target="contact-email"
+          class="flex items-center gap-3 text-sm text-foreground transition-colors hover:text-accent"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" class="shrink-0 text-foreground-subtle">
+            <rect x="1" y="3" width="14" height="10" rx="1" stroke="currentColor" stroke-width="1.2" />
+            <path d="M1 5l7 4 7-4" stroke="currentColor" stroke-width="1.2" />
+          </svg>
+          {siteConfig.email}
+        </a>
+        {phone && (
+          <a href={`tel:${phone.replace(/\s/g, '')}`} class="flex items-center gap-3 text-sm text-foreground transition-colors hover:text-accent">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" class="shrink-0 text-foreground-subtle">
+              <path d="M3 2h3l1.5 3.5-2 1.5c1 2 2.5 3.5 4.5 4.5l1.5-2L15 11v3c0 .6-.4 1-1 1C6.6 15 1 9.4 1 2c0-.6.4-1 1-1z" stroke="currentColor" stroke-width="1.2" />
+            </svg>
+            {phone}
+          </a>
+        )}
+        {socials.map((social) => (
+          <a
+            href={social.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center gap-3 text-sm text-foreground transition-colors hover:text-accent"
+          >
+            <SocialIcon name={social.name} size={16} class="shrink-0 text-foreground-subtle" />
+            {social.label}
+          </a>
+        ))}
+      </div>
+
+      {locales.map((locale) => (
+        <p class="mt-8 text-xs text-foreground-subtle" data-lang={locale}>{content.contact[locale].note}</p>
+      ))}
+    </div>
+
+    <ContactForm />
+  </div>
+</section>

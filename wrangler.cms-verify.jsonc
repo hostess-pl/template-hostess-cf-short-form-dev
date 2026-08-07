@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "hostess-tpl-modern-cms",
+  "compatibility_date": "2026-01-31",
+  "compatibility_flags": [
+    "nodejs_compat_v2"
+  ],
+  "main": "./dist/_worker.js/index.js",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "workers_dev": true,
+  "vars": {
+    "SITE_URL": "https://hostess-tpl-modern-cms.hostesspl.workers.dev",
+    "CHECK_ORIGIN": "true",
+    "SUPABASE_TRACKING_ENABLED": "false",
+    "ANALYTICS_ENV": "cms-verify",
+    "PUBLIC_CONSENT_ENABLED": "false",
+    "PUBLIC_ANALYTICS_ENABLED": "false",
+    "PUBLIC_SUPABASE_URL": "https://tdkxfaordqpoofqpyvjo.supabase.co",
+    "PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRka3hmYW9yZHFwb29mcXB5dmpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyOTg3NTcsImV4cCI6MjA5OTg3NDc1N30.EsevKOM9xKcnb8CHaA6VHlgzjGyKuSP-GT18w35w7x8",
+    "PUBLIC_CMS_SITE_SLUG": "tpl-modern",
+    "CMS_SITE_SLUG": "tpl-modern"
+  }
+}

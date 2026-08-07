@@ -1,0 +1,95 @@
+---
+import { Image } from 'astro:assets';
+import { content, heroImage } from '@/config/content';
+import siteConfig from '@/config/site.config';
+import { getLocales } from '@/config/site.config';
+
+const locales = getLocales();
+---
+
+<section id="hero" data-review-id="hero-section" class="page-section pt-24 md:pt-28 draft-aware-hero">
+  <div class="container">
+    <div class="section-split">
+      <div class="flex flex-col justify-center">
+        {locales.map((locale) => (
+          <p class="section-label mb-4" data-lang={locale}>{content.hero[locale].eyebrow}</p>
+        ))}
+
+        <h1 data-review-target="hero-headline" class="font-display text-[clamp(2.5rem,5vw,3.75rem)] leading-[1.05] text-foreground">
+          {locales.map((locale) => (
+            <span data-lang={locale}>
+              {content.hero[locale].headlineLead}
+              {content.hero[locale].headlineEmphasis ? (
+                <>
+                  {' '}
+                  <em class="font-normal italic text-accent">{content.hero[locale].headlineEmphasis}</em>
+                </>
+              ) : null}
+            </span>
+          ))}
+        </h1>
+
+        {locales.map((locale) => (
+          <p class="mt-6 max-w-lg text-sm leading-relaxed text-foreground-muted md:text-base" data-lang={locale}>
+            {content.hero[locale].bioIntro}{' '}
+            {content.hero[locale].bioBody}
+          </p>
+        ))}
+
+        <div class="mt-8 flex flex-wrap items-center gap-4">
+          {locales.map((locale) => (
+            <a
+              href="#contact"
+              data-review-target="hero-cta-primary"
+              class="inline-flex items-center border border-foreground bg-foreground px-5 py-2.5 text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-background transition-colors hover:border-accent hover:bg-accent"
+              data-lang={locale}
+            >
+              {content.hero[locale].cta}
+            </a>
+          ))}
+          {locales.map((locale) => (
+            <a
+              href="#work"
+              data-review-target="hero-cta-secondary"
+              class="editorial-link editorial-link--underline"
+              data-lang={locale}
+            >
+              {content.hero[locale].ctaSecondary}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div class="relative overflow-hidden border border-border bg-background-secondary">
+        <Image
+          src={heroImage}
+          alt={siteConfig.name}
+          widths={[480, 640, 800, 960]}
+          sizes="(max-width: 1024px) 100vw, 50vw"
+          class="aspect-[3/4] w-full object-cover object-top"
+          loading="eager"
+        />
+        {locales.map((locale) => (
+          <div class="absolute inset-x-0 bottom-0 border-t border-border/60 bg-background/90 px-4 py-3 backdrop-blur-sm" data-lang={locale}>
+            <p class="text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-foreground">{content.hero[locale].availability}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-band mt-10 md:mt-14">
+    <div class="container py-7 md:py-8">
+      {locales.map((locale) => (
+        <dl data-review-target="hero-stats" class="grid grid-cols-2 gap-6 md:grid-cols-4 md:gap-6" data-lang={locale}>
+          {content.stats[locale].map((stat) => (
+            <div class="text-center md:text-left">
+              <dd class="font-display text-2xl text-foreground md:text-3xl">{stat.value}</dd>
+              <dt class="mt-1.5 truncate text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-foreground-subtle">{stat.label}</dt>
+            </div>
+          ))}
+        </dl>
+      ))}
+    </div>
+  </div>
+</section>

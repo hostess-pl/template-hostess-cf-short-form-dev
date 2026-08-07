@@ -1,0 +1,562 @@
+---
+/**
+ * Robocza chrome for short-form — privacy badge + Early Adopter live X/20 + publish CTA.
+ */
+import type { PortfolioCompletion } from '@/lib/cms/portfolioCompletion'
+import { EARLY_ADOPTER_FINISHED_FADE_DAYS, EARLY_ADOPTER_PUBLISH_CAP } from '@/lib/cms/earlyAdopter'
+
+interface Props {
+  locale?: string
+  completion?: PortfolioCompletion | null
+  siteSlug?: string
+}
+
+const locale = Astro.props.locale === 'en' ? 'en' : 'pl'
+const completion = Astro.props.completion ?? null
+const siteSlug = String(Astro.props.siteSlug || '').trim().toLowerCase()
+const next = completion?.next ?? null
+const pct = completion?.pct ?? 0
+const nextLabel = next ? (locale === 'en' ? next.labelEn : next.labelPl) : ''
+const nextHref = next ? `/edit/app?section=${encodeURIComponent(next.sectionId)}` : '/edit/app'
+const fadeDays = EARLY_ADOPTER_FINISHED_FADE_DAYS
+const capDefault = EARLY_ADOPTER_PUBLISH_CAP
+
+const copy =
+  locale === 'en'
+    ? {
+        title: 'Working portfolio',
+        privacy: '👀 Only you can see this version. Publish your portfolio to share it with agencies.',
+        bodyDefault: 'Finish the highlights, then publish when you are ready.',
+        strength: 'Portfolio strength',
+        next: 'Next tip',
+        edit: 'Continue editing',
+        publish: 'Publish',
+        custom: 'Custom changes (soon)',
+        publishing: 'Publishing…',
+        error: 'Could not publish. Try again.',
+        ready: 'Looking strong — preview, then publish when ready.',
+        modalTitle: 'Publish your portfolio?',
+        modalBody: 'After you publish, anyone with the link can see your page.',
+        modalEdit: 'You can always change your content later at /edit.',
+        modalConfirm: 'Publish now',
+        modalCancel: 'Not yet',
+        eaTitle: 'Free portfolio',
+        eaBody: 'We build the first 20 portfolios completely free. After you publish, you reserve your spot.',
+        eaCta: '👉 Finish your profile and tap Publish.',
+        eaSpotsRemaining: 'Only {n} of {cap} spots left.',
+        eaFinished: 'Promotion ended (20/20). Your working version stays private until you publish.',
+        eaLoading: 'Checking free spots…',
+      }
+    : {
+        title: 'Wersja robocza portfolio',
+        privacy: '👀 Tylko Ty widzisz tę wersję. Opublikuj portfolio, aby udostępnić je agencjom.',
+        bodyDefault: 'Domknij najważniejsze punkty i opublikuj, gdy będziesz gotowa.',
+        strength: 'Siła portfolio',
+        next: 'Następny krok',
+        edit: 'Kontynuuj edycję',
+        publish: 'Opublikuj',
+        custom: 'Zmiany wizualne (wkrótce)',
+        publishing: 'Publikowanie…',
+        error: 'Nie udało się opublikować. Spróbuj ponownie.',
+        ready: 'Wygląda mocno — sprawdź podgląd i opublikuj, gdy będziesz gotowa.',
+        modalTitle: 'Opublikować portfolio?',
+        modalBody: 'Po publikacji strona będzie widoczna publicznie dla każdego, kto ma link.',
+        modalEdit: 'Treści możesz zawsze zmieniać pod adresem /edit.',
+        modalConfirm: 'Opublikuj teraz',
+        modalCancel: 'Jeszcze nie',
+        eaTitle: 'Darmowe portfolio',
+        eaBody: 'Tworzymy pierwsze 20 portfolio całkowicie za darmo. Po publikacji rezerwujesz swoje miejsce.',
+        eaCta: '👉 Uzupełnij profil i kliknij Opublikuj.',
+        eaSpotsRemaining: 'Zostało tylko {n} z {cap} miejsc.',
+        eaFinished: 'Promocja zakończona (20/20). Roboczą wersję nadal widzisz tylko Ty — aż opublikujesz.',
+        eaLoading: 'Sprawdzam wolne miejsca…',
+      }
+---
+
+<div
+  id="portfolio-draft-banner"
+  class="portfolio-draft-banner"
+  role="region"
+  aria-label={copy.title}
+  data-site-slug={siteSlug}
+  data-fade-days={String(fadeDays)}
+  data-cap={String(capDefault)}
+>
+  <div class="portfolio-draft-banner__inner">
+    <div class="portfolio-draft-banner__text">
+      <p class="portfolio-draft-banner__privacy">{copy.privacy}</p>
+      <p class="portfolio-draft-banner__title">{copy.title}</p>
+      <p class="portfolio-draft-banner__body" id="portfolio-draft-body">{copy.bodyDefault}</p>
+
+      <div
+        id="portfolio-ea-card"
+        class="portfolio-ea-card"
+        hidden
+        data-title={copy.eaTitle}
+        data-body={copy.eaBody}
+        data-cta={copy.eaCta}
+        data-spots-remaining={copy.eaSpotsRemaining}
+        data-finished={copy.eaFinished}
+        data-loading={copy.eaLoading}
+      >
+        <p class="portfolio-ea-card__eyebrow">
+          <span class="portfolio-ea-card__icon" aria-hidden="true">🎁</span>
+          <span id="portfolio-ea-title">{copy.eaTitle}</span>
+        </p>
+        <p class="portfolio-ea-card__body" id="portfolio-ea-body">{copy.eaLoading}</p>
+        <p class="portfolio-ea-card__spots" id="portfolio-ea-spots" hidden></p>
+        <p class="portfolio-ea-card__cta" id="portfolio-ea-cta" hidden>{copy.eaCta}</p>
+      </div>
+
+      {
+        completion ? (
+          <div class="portfolio-draft-banner__progress">
+            <div class="portfolio-draft-banner__progress-meta">
+              <span>{copy.strength}</span>
+              <strong>{pct}%</strong>
+            </div>
+            <div class="portfolio-draft-banner__bar" aria-hidden="true">
+              <div class="portfolio-draft-banner__bar-fill" style={`width:${pct}%`} />
+            </div>
+            {
+              next ? (
+                <a class="portfolio-draft-banner__next" href={nextHref}>
+                  <span class="portfolio-draft-banner__next-label">{copy.next}</span>
+                  <span class="portfolio-draft-banner__next-task">{nextLabel}</span>
+                  <span class="portfolio-draft-banner__next-weight">+{next.weight}</span>
+                </a>
+              ) : (
+                <p class="portfolio-draft-banner__ready">{copy.ready}</p>
+              )
+            }
+          </div>
+        ) : null
+      }
+    </div>
+    <div class="portfolio-draft-banner__actions">
+      <a class="portfolio-draft-banner__btn portfolio-draft-banner__btn--ghost" href={nextHref}>
+        {copy.edit}
+      </a>
+      <button
+        type="button"
+        class="portfolio-draft-banner__btn portfolio-draft-banner__btn--primary"
+        id="portfolio-publish-btn"
+        data-label={copy.publish}
+        data-busy={copy.publishing}
+        data-error={copy.error}
+        aria-haspopup="dialog"
+        aria-controls="portfolio-publish-modal"
+      >
+        {copy.publish}
+      </button>
+      <button type="button" class="portfolio-draft-banner__btn portfolio-draft-banner__btn--ghost" disabled>
+        {copy.custom}
+      </button>
+    </div>
+  </div>
+</div>
+
+<dialog
+  id="portfolio-publish-modal"
+  class="portfolio-publish-modal"
+  aria-labelledby="portfolio-publish-modal-title"
+>
+  <form method="dialog" class="portfolio-publish-modal__card">
+    <h2 id="portfolio-publish-modal-title" class="portfolio-publish-modal__title">{copy.modalTitle}</h2>
+    <p class="portfolio-publish-modal__body">{copy.modalBody}</p>
+    <p class="portfolio-publish-modal__note">{copy.modalEdit}</p>
+    <p id="portfolio-publish-modal-error" class="portfolio-publish-modal__error" hidden></p>
+    <div class="portfolio-publish-modal__actions">
+      <button type="submit" value="cancel" class="portfolio-publish-modal__btn portfolio-publish-modal__btn--ghost">
+        {copy.modalCancel}
+      </button>
+      <button
+        type="button"
+        id="portfolio-publish-confirm"
+        class="portfolio-publish-modal__btn portfolio-publish-modal__btn--primary"
+        data-label={copy.modalConfirm}
+        data-busy={copy.publishing}
+        data-error={copy.error}
+      >
+        {copy.modalConfirm}
+      </button>
+    </div>
+  </form>
+</dialog>
+
+<style>
+  .portfolio-draft-banner {
+    position: sticky;
+    top: 0;
+    z-index: 80;
+    background: linear-gradient(180deg, #1a1a1a 0%, #111 100%);
+    color: #f5f5f5;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    font-family: system-ui, sans-serif;
+  }
+  .portfolio-draft-banner__inner {
+    margin: 0 auto;
+    max-width: 72rem;
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem 1.25rem;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .portfolio-draft-banner__privacy {
+    margin: 0 0 0.45rem;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: #e8d5a8;
+    max-width: 36rem;
+  }
+  .portfolio-draft-banner__title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+  .portfolio-draft-banner__body {
+    margin: 0.2rem 0 0;
+    font-size: 0.78rem;
+    opacity: 0.85;
+    max-width: 34rem;
+  }
+  .portfolio-ea-card {
+    margin-top: 0.75rem;
+    max-width: 28rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(232, 213, 168, 0.35);
+    background: rgba(232, 213, 168, 0.08);
+    transition: opacity 0.45s ease;
+  }
+  .portfolio-ea-card.is-fading {
+    opacity: 0;
+  }
+  .portfolio-ea-card__eyebrow {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    font-weight: 650;
+  }
+  .portfolio-ea-card__icon {
+    font-size: 1rem;
+  }
+  .portfolio-ea-card__body {
+    margin: 0.35rem 0 0;
+    font-size: 0.76rem;
+    line-height: 1.4;
+    opacity: 0.9;
+  }
+  .portfolio-ea-card__spots {
+    margin: 0.45rem 0 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #f5f5f5;
+  }
+  .portfolio-ea-card__cta {
+    margin: 0.4rem 0 0;
+    font-size: 0.74rem;
+    opacity: 0.88;
+  }
+  .portfolio-draft-banner__progress {
+    margin-top: 0.65rem;
+    max-width: 26rem;
+  }
+  .portfolio-draft-banner__progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.8;
+  }
+  .portfolio-draft-banner__progress-meta strong {
+    font-size: 1.05rem;
+    letter-spacing: 0;
+    text-transform: none;
+    opacity: 1;
+  }
+  .portfolio-draft-banner__bar {
+    margin-top: 0.35rem;
+    height: 0.4rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    overflow: hidden;
+  }
+  .portfolio-draft-banner__bar-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #e8d5a8, #f5f5f5);
+    transition: width 0.35s ease;
+  }
+  .portfolio-draft-banner__next {
+    margin-top: 0.55rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.65rem;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 0.5rem;
+    padding: 0.35rem 0.45rem;
+    margin-left: -0.45rem;
+    transition: background 0.15s ease;
+  }
+  .portfolio-draft-banner__next:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .portfolio-draft-banner__next-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.65;
+  }
+  .portfolio-draft-banner__next-task {
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .portfolio-draft-banner__next-weight {
+    font-size: 0.7rem;
+    opacity: 0.7;
+  }
+  .portfolio-draft-banner__ready {
+    margin: 0.55rem 0 0;
+    font-size: 0.8rem;
+    opacity: 0.85;
+  }
+  .portfolio-draft-banner__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .portfolio-draft-banner__btn {
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+  }
+  .portfolio-draft-banner__btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .portfolio-draft-banner__btn--primary {
+    background: #f5f5f5;
+    color: #111;
+  }
+  .portfolio-draft-banner__btn--ghost {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .portfolio-publish-modal {
+    border: none;
+    border-radius: 1rem;
+    padding: 0;
+    max-width: min(26rem, calc(100vw - 2rem));
+    background: transparent;
+    color: #111;
+  }
+  .portfolio-publish-modal::backdrop {
+    background: rgba(10, 10, 10, 0.55);
+    backdrop-filter: blur(4px);
+  }
+  .portfolio-publish-modal__card {
+    margin: 0;
+    padding: 1.35rem 1.4rem 1.2rem;
+    border-radius: 1rem;
+    background: #faf8f5;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+    font-family: system-ui, sans-serif;
+  }
+  .portfolio-publish-modal__title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+  }
+  .portfolio-publish-modal__body {
+    margin: 0.65rem 0 0;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: #333;
+  }
+  .portfolio-publish-modal__note {
+    margin: 0.55rem 0 0;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: #666;
+  }
+  .portfolio-publish-modal__error {
+    margin: 0.75rem 0 0;
+    font-size: 0.82rem;
+    color: #a33;
+  }
+  .portfolio-publish-modal__actions {
+    margin-top: 1.15rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.55rem;
+  }
+  .portfolio-publish-modal__btn {
+    border-radius: 999px;
+    padding: 0.55rem 1.05rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+  .portfolio-publish-modal__btn:disabled {
+    opacity: 0.55;
+    cursor: wait;
+  }
+  .portfolio-publish-modal__btn--ghost {
+    background: transparent;
+    border-color: rgba(0, 0, 0, 0.15);
+    color: #222;
+  }
+  .portfolio-publish-modal__btn--primary {
+    background: #111;
+    color: #faf8f5;
+  }
+</style>
+
+<script>
+  const banner = document.getElementById('portfolio-draft-banner')
+  function syncBannerOffset() {
+    if (!banner) return
+    const height = Math.ceil(banner.getBoundingClientRect().height)
+    document.documentElement.style.setProperty('--draft-banner-height', `${height}px`)
+    document.body.classList.add('has-draft-banner')
+  }
+  syncBannerOffset()
+  window.addEventListener('resize', syncBannerOffset)
+  if (typeof ResizeObserver !== 'undefined' && banner) {
+    new ResizeObserver(syncBannerOffset).observe(banner)
+  }
+
+  const eaCard = document.getElementById('portfolio-ea-card')
+  const eaTitle = document.getElementById('portfolio-ea-title')
+  const eaBody = document.getElementById('portfolio-ea-body')
+  const eaSpots = document.getElementById('portfolio-ea-spots')
+  const eaCta = document.getElementById('portfolio-ea-cta')
+
+  async function loadEarlyAdopter() {
+    if (!eaCard || !banner) return
+    const fadeDays = Number(banner.getAttribute('data-fade-days') || '14')
+    const slug = banner.getAttribute('data-site-slug') || 'site'
+    const storageKey = `hw_ea_soldout_${slug}`
+
+    eaCard.hidden = false
+    try {
+      const res = await fetch('/api/edit/portfolio/early-adopter', { credentials: 'same-origin' })
+      if (!res.ok) {
+        eaCard.hidden = true
+        syncBannerOffset()
+        return
+      }
+      const data = await res.json()
+      const claimed = Number(data.claimed) || 0
+      const cap = Number(data.cap) || Number(banner.getAttribute('data-cap') || '20')
+      const eligible = Boolean(data.eligible)
+
+      if (eligible) {
+        try { localStorage.removeItem(storageKey) } catch { /* ignore */ }
+        if (eaTitle) eaTitle.textContent = eaCard.getAttribute('data-title') || ''
+        if (eaBody) eaBody.textContent = eaCard.getAttribute('data-body') || ''
+        if (eaSpots) {
+          eaSpots.hidden = false
+          const left = Math.max(0, cap - claimed)
+          const tmpl = eaCard.getAttribute('data-spots-remaining') || 'Zostało tylko {n} z {cap} miejsc.'
+          eaSpots.textContent = tmpl.replace('{n}', String(left)).replace('{cap}', String(cap))
+        }
+        if (eaCta) eaCta.hidden = false
+        syncBannerOffset()
+        return
+      }
+
+      // Sold out: show finished state, then fade after fadeDays
+      let soldAt = 0
+      try {
+        soldAt = Number(localStorage.getItem(storageKey) || '0')
+        if (!soldAt) {
+          soldAt = Date.now()
+          localStorage.setItem(storageKey, String(soldAt))
+        }
+      } catch {
+        soldAt = Date.now()
+      }
+      const ageDays = (Date.now() - soldAt) / (24 * 60 * 60 * 1000)
+      if (ageDays >= fadeDays) {
+        eaCard.hidden = true
+        syncBannerOffset()
+        return
+      }
+      if (eaTitle) eaTitle.textContent = eaCard.getAttribute('data-title') || ''
+      if (eaBody) eaBody.textContent = eaCard.getAttribute('data-finished') || ''
+      if (eaSpots) {
+        eaSpots.hidden = true
+        eaSpots.textContent = ''
+      }
+      if (eaCta) eaCta.hidden = true
+      syncBannerOffset()
+    } catch {
+      eaCard.hidden = true
+      syncBannerOffset()
+    }
+  }
+  loadEarlyAdopter()
+
+  const btn = document.getElementById('portfolio-publish-btn')
+  const modalEl = document.getElementById('portfolio-publish-modal')
+  const modal = modalEl instanceof HTMLDialogElement ? modalEl : null
+  const confirmBtn = document.getElementById('portfolio-publish-confirm')
+  const errEl = document.getElementById('portfolio-publish-modal-error')
+
+  if (btn && modal) {
+    btn.addEventListener('click', () => {
+      if (errEl) {
+        errEl.hidden = true
+        errEl.textContent = ''
+      }
+      modal.showModal()
+    })
+  }
+
+  if (confirmBtn && modal) {
+    confirmBtn.addEventListener('click', async () => {
+      const label = confirmBtn.getAttribute('data-label') || 'Publish'
+      const busy = confirmBtn.getAttribute('data-busy') || '…'
+      const err = confirmBtn.getAttribute('data-error') || 'Error'
+      confirmBtn.setAttribute('disabled', 'true')
+      confirmBtn.textContent = busy
+      try {
+        const res = await fetch('/api/edit/portfolio/publish', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          credentials: 'same-origin',
+          body: '{}',
+        })
+        if (!res.ok) throw new Error('publish_failed')
+        window.location.reload()
+      } catch {
+        confirmBtn.textContent = label
+        confirmBtn.removeAttribute('disabled')
+        if (errEl) {
+          errEl.hidden = false
+          errEl.textContent = err
+        }
+      }
+    })
+  }
+</script>

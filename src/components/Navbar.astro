@@ -1,0 +1,198 @@
+---
+import siteConfig from '@/config/site.config';
+import { content, getShowExperienceSection } from '@/config/content';
+import { getLocales } from '@/config/site.config';
+import type { Locale } from '@/config/site.config';
+
+const locales = getLocales();
+const showExperienceSection = getShowExperienceSection();
+const navKeys = (() => {
+  const keys: ('work' | 'about' | 'experience' | 'contact')[] = ['work', 'about'];
+  if (showExperienceSection) keys.push('experience');
+  keys.push('contact');
+  return keys;
+})();
+const localeLabels: Record<Locale, string> = { en: 'EN', pl: 'PL', es: 'ES' };
+const toggleLocales = locales.map((id) => ({ id, label: localeLabels[id] }));
+const showLocaleSwitcher = toggleLocales.length > 1;
+
+const displayName = siteConfig.name.toUpperCase();
+const initialsSource = (siteConfig.personName || siteConfig.name).trim();
+const nameParts = initialsSource.split(/\s+/).filter(Boolean);
+const navInitials =
+  nameParts.length >= 2
+    ? `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase()
+    : (nameParts[0] || siteConfig.name).slice(0, 2).toUpperCase();
+---
+
+<header data-review-id="site-header" class="fixed inset-x-0 z-50 border-b border-border-strong bg-background/92 backdrop-blur-sm top-[var(--draft-banner-height,0px)]">
+  <div class="container flex h-14 items-center justify-between gap-4 md:h-16">
+    <a href="#" class="text-[0.625rem] font-semibold uppercase tracking-[0.28em] text-foreground">
+      <span class="md:hidden">{navInitials}</span>
+      <span class="hidden md:inline">{displayName}</span>
+    </a>
+
+    <nav class="hidden items-center gap-6 lg:gap-8 lg:flex" aria-label="Main">
+      {navKeys.map((key) =>
+        locales.map((locale) => (
+          <a href={`#${key}`} class="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-foreground-muted transition-colors hover:text-foreground" data-lang={locale}>
+            {content.nav[locale][key]}
+          </a>
+        )),
+      )}
+      {showLocaleSwitcher ? (
+        <div class="flex border border-border p-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.12em]" role="group" aria-label="Language">
+          {toggleLocales.map(({ id, label }) => (
+            <button
+              type="button"
+              data-locale-btn={id}
+              class="px-2 py-1 transition-colors aria-pressed:bg-foreground aria-pressed:text-background"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {locales.map((locale) => (
+        <a
+          href="#contact"
+          data-review-target="nav-cta"
+          class="border border-foreground px-4 py-2 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-foreground transition-colors hover:bg-foreground hover:text-background"
+          data-lang={locale}
+        >
+          {content.nav[locale].book}
+        </a>
+      ))}
+    </nav>
+
+    <div class="flex items-center gap-3 lg:hidden">
+      <button
+        type="button"
+        id="mobile-menu-btn"
+        data-review-target="nav-mobile-menu"
+        class="inline-flex h-9 w-9 items-center justify-center border border-border"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        aria-label="Open menu"
+      >
+        <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <path d="M2 5h14M2 9h14M2 13h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="mobile-menu-backdrop" class="fixed inset-0 z-40 hidden bg-foreground/20 lg:hidden" aria-hidden="true"></div>
+
+  <div id="mobile-menu" class="relative z-50 hidden border-t border-border bg-background lg:hidden">
+    <nav class="container flex flex-col gap-1 py-4" aria-label="Mobile">
+      {navKeys.map((key) =>
+        locales.map((locale) => (
+          <a
+            href={`#${key}`}
+            class="mobile-nav-link px-3 py-2.5 text-sm text-foreground-muted transition-colors hover:text-foreground"
+            data-lang={locale}
+          >
+            {content.nav[locale][key]}
+          </a>
+        )),
+      )}
+    </nav>
+
+    {showLocaleSwitcher ? (
+      <div class="container border-t border-border py-4">
+        <div class="mb-2 px-3 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-foreground-subtle">
+          {locales.map((locale) => (
+            <span data-lang={locale}>
+              {locale === 'en' ? 'Language' : locale === 'pl' ? 'Język' : 'Idioma'}
+            </span>
+          ))}
+        </div>
+        <div class="mx-3 flex w-fit border border-border p-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.12em]" role="group" aria-label="Language">
+          {toggleLocales.map(({ id, label }) => (
+            <button
+              type="button"
+              data-locale-btn={id}
+              class="px-2 py-1 transition-colors aria-pressed:bg-foreground aria-pressed:text-background"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div class="mt-4 px-3">
+          {locales.map((locale) => (
+            <a
+              href="#contact"
+              class="mobile-nav-link inline-flex w-full items-center justify-center border border-foreground px-4 py-2.5 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-foreground transition-colors hover:bg-foreground hover:text-background"
+              data-lang={locale}
+            >
+              {content.nav[locale].book}
+            </a>
+          ))}
+        </div>
+      </div>
+    ) : (
+      <div class="container border-t border-border py-4">
+        <div class="px-3">
+          {locales.map((locale) => (
+            <a
+              href="#contact"
+              class="mobile-nav-link inline-flex w-full items-center justify-center border border-foreground px-4 py-2.5 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-foreground transition-colors hover:bg-foreground hover:text-background"
+              data-lang={locale}
+            >
+              {content.nav[locale].book}
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+</header>
+
+<script>
+  const menuBtn = document.getElementById('mobile-menu-btn');
+  const menu = document.getElementById('mobile-menu');
+  const backdrop = document.getElementById('mobile-menu-backdrop');
+
+  function closeMenu() {
+    menu?.classList.add('hidden');
+    backdrop?.classList.add('hidden');
+    menuBtn?.setAttribute('aria-expanded', 'false');
+    menuBtn?.setAttribute('aria-label', 'Open menu');
+  }
+
+  function openMenu() {
+    menu?.classList.remove('hidden');
+    backdrop?.classList.remove('hidden');
+    menuBtn?.setAttribute('aria-expanded', 'true');
+    menuBtn?.setAttribute('aria-label', 'Close menu');
+  }
+
+  function isMenuOpen() {
+    return menu && !menu.classList.contains('hidden');
+  }
+
+  menuBtn?.addEventListener('click', () => {
+    if (isMenuOpen()) closeMenu();
+    else openMenu();
+  });
+
+  backdrop?.addEventListener('click', closeMenu);
+
+  document.addEventListener('click', (event) => {
+    if (!isMenuOpen()) return;
+    const target = event.target;
+    if (!(target instanceof Node)) return;
+    if (menu?.contains(target) || menuBtn?.contains(target)) return;
+    closeMenu();
+  });
+
+  document.querySelectorAll('.mobile-nav-link').forEach((link) => {
+    link.addEventListener('click', closeMenu);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && isMenuOpen()) closeMenu();
+  });
+</script>

@@ -1,0 +1,220 @@
+@import 'tailwindcss';
+@import './themes/modern.css';
+
+@import '@fontsource/playfair-display/400.css';
+@import '@fontsource/playfair-display/400-italic.css';
+@import '@fontsource/playfair-display/500.css';
+@import '@fontsource/playfair-display/600.css';
+@import '@fontsource/playfair-display/700.css';
+@import '@fontsource-variable/dm-sans';
+
+@theme {
+  --color-background: var(--background);
+  --color-background-secondary: var(--background-secondary);
+  --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-foreground-subtle: var(--foreground-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-hero-wash: var(--hero-wash);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-card: var(--card);
+  --color-ring: var(--ring);
+  --color-error: var(--error);
+
+  --font-sans: var(--theme-font-sans);
+  --font-display: var(--theme-font-display);
+
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    line-height: 1.65;
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--accent) 35%, white);
+    color: var(--foreground);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .container {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .container {
+      padding-inline: 2.5rem;
+    }
+  }
+
+  .section-label {
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .editorial-rule {
+    height: 1px;
+    background: var(--color-border-strong);
+  }
+
+  .service-index {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 8vw, 5rem);
+    font-weight: 400;
+    line-height: 1;
+    color: color-mix(in srgb, var(--accent) 35%, transparent);
+    user-select: none;
+  }
+
+  .section-split {
+    display: grid;
+    gap: 3rem;
+    align-items: center;
+  }
+
+  @media (min-width: 1024px) {
+    .section-split {
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+    }
+  }
+
+  .stats-band {
+    background-color: var(--color-background-secondary);
+    border-block: 1px solid var(--color-border);
+  }
+
+  .services-grid {
+    display: grid;
+    gap: 1px;
+    background-color: var(--color-border);
+    border: 1px solid var(--color-border);
+  }
+
+  @media (min-width: 768px) {
+    .services-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .services-grid > * {
+    background-color: var(--color-background);
+    padding: 2rem;
+  }
+
+  .page-section {
+    padding-block: 4rem;
+  }
+
+  @media (min-width: 768px) {
+    .page-section {
+      padding-block: 5rem;
+    }
+  }
+
+  .editorial-grid {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .editorial-link {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-foreground);
+    transition: color 0.2s;
+  }
+
+  .editorial-link:hover {
+    color: var(--color-accent);
+  }
+
+  .editorial-link--underline {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-color: var(--color-accent);
+  }
+
+  [data-lang] {
+    display: none;
+  }
+
+  html[data-locale='en'] [data-lang='en'],
+  html[data-locale='pl'] [data-lang='pl'],
+  html[data-locale='es'] [data-lang='es'] {
+    display: revert;
+  }
+
+  html[data-locale='en'] [data-lang='en'].block,
+  html[data-locale='pl'] [data-lang='pl'].block,
+  html[data-locale='es'] [data-lang='es'].block {
+    display: block;
+  }
+
+  html[data-locale='en'] [data-lang='en'].flex,
+  html[data-locale='pl'] [data-lang='pl'].flex,
+  html[data-locale='es'] [data-lang='es'].flex {
+    display: flex;
+  }
+
+  html[data-locale='en'] [data-lang='en'].grid,
+  html[data-locale='pl'] [data-lang='pl'].grid,
+  html[data-locale='es'] [data-lang='es'].grid {
+    display: grid;
+  }
+
+  html[data-locale='en'] [data-lang='en'].inline,
+  html[data-locale='pl'] [data-lang='pl'].inline,
+  html[data-locale='es'] [data-lang='es'].inline {
+    display: inline;
+  }
+}
+
+/* Draft banner sits above fixed nav — push hero so content isn't covered. */
+body.has-draft-banner .draft-aware-hero {
+  padding-top: calc(6rem + var(--draft-banner-height, 0px));
+}
+
+@media (min-width: 768px) {
+  body.has-draft-banner .draft-aware-hero {
+    padding-top: calc(7rem + var(--draft-banner-height, 0px));
+  }
+}

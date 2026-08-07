@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "hostess-template",
+  "compatibility_date": "2026-01-31",
+  "compatibility_flags": ["nodejs_compat_v2"],
+  "vars": {
+    "CHECK_ORIGIN": "true",
+    "SUPABASE_TRACKING_ENABLED": "false",
+    "ANALYTICS_ENV": "preview",
+    "PUBLIC_CONSENT_ENABLED": "true",
+    "PUBLIC_ANALYTICS_ENABLED": "true"
+  }
+}

@@ -1,0 +1,215 @@
+---
+import { content } from '@/config/content';
+import { locales } from '@/config/site.config';
+---
+
+<div data-review-target="contact-form">
+  <form id="contact-form" class="space-y-6" novalidate>
+    <input type="text" name="honeypot" tabindex="-1" autocomplete="off" class="sr-only" aria-hidden="true" />
+    <input type="hidden" name="locale" id="contact-locale" value="en" />
+
+    <div class="grid gap-6 sm:grid-cols-2">
+      <div>
+        <label for="contact-name" class="mb-2 block text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-foreground-subtle">
+        {locales.map((locale) => (
+          <span data-lang={locale}>{content.contact[locale].form.name}</span>
+        ))}
+        <span class="text-accent"> *</span>
+      </label>
+      <input
+        id="contact-name"
+        name="name"
+        type="text"
+        required
+        class="w-full border-b border-border-strong bg-transparent py-3 text-foreground outline-none transition-colors placeholder:text-foreground-subtle focus:border-accent"
+      />
+      </div>
+
+      <div>
+        <label for="contact-email" class="mb-2 block text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-foreground-subtle">
+          {locales.map((locale) => (
+            <span data-lang={locale}>{content.contact[locale].form.email}</span>
+          ))}
+          <span class="text-accent"> *</span>
+        </label>
+        <input
+          id="contact-email"
+          name="email"
+          type="email"
+          required
+          class="w-full border-b border-border-strong bg-transparent py-3 text-foreground outline-none transition-colors placeholder:text-foreground-subtle focus:border-accent"
+        />
+      </div>
+    </div>
+
+    <div>
+      <label for="contact-phone" class="mb-2 block text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-foreground-subtle">
+        {locales.map((locale) => (
+          <span data-lang={locale}>{content.contact[locale].form.phone}</span>
+        ))}
+      </label>
+      <input
+        id="contact-phone"
+        name="phone"
+        type="tel"
+        class="w-full border-b border-border-strong bg-transparent py-3 text-foreground outline-none transition-colors placeholder:text-foreground-subtle focus:border-accent"
+      />
+    </div>
+
+    <div>
+      <label for="contact-message" class="mb-2 block text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-foreground-subtle">
+        {locales.map((locale) => (
+          <span data-lang={locale}>{content.contact[locale].form.message}</span>
+        ))}
+        <span class="text-accent"> *</span>
+      </label>
+      <textarea
+        id="contact-message"
+        name="message"
+        rows="5"
+        required
+        class="w-full resize-y border-b border-border-strong bg-transparent py-3 text-foreground outline-none transition-colors placeholder:text-foreground-subtle focus:border-accent"
+      ></textarea>
+    </div>
+
+      <label class="flex items-start gap-3 text-sm text-foreground-muted">
+      <input id="contact-privacy" name="privacy" type="checkbox" required class="mt-1 h-4 w-4 border-border accent-[#C4937E]" />
+      <span>
+        {locales.map((locale) => (
+          <span data-lang={locale}>{content.contact[locale].form.privacy}</span>
+        ))}
+      </span>
+    </label>
+
+    <p id="contact-error" class="hidden text-sm text-error" role="alert"></p>
+
+    <button
+      type="submit"
+      id="contact-submit"
+      class="w-full bg-foreground px-6 py-3.5 text-[0.625rem] font-semibold uppercase tracking-[0.2em] text-background transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {locales.map((locale) => (
+        <span data-lang={locale}>{content.contact[locale].form.submit}</span>
+      ))}
+    </button>
+  </form>
+
+  <div id="contact-success" class="hidden py-8 text-center">
+    <h3 class="font-display text-3xl text-foreground">
+      {locales.map((locale) => (
+        <span data-lang={locale}>{content.contact[locale].form.successTitle}</span>
+      ))}
+    </h3>
+    <p class="mt-3 text-foreground-muted">
+      {locales.map((locale) => (
+        <span data-lang={locale}>{content.contact[locale].form.successMessage}</span>
+      ))}
+    </p>
+  </div>
+</div>
+
+<script>
+  import { isConsentedForForm } from '@/scripts/consent.client';
+  import { getAttribution } from '@/scripts/attribution';
+
+  const MESSAGE_MIN_LENGTH = 10;
+
+  const messages = {
+    en: {
+      errorName: 'Please enter your name.',
+      errorEmail: 'Please enter a valid email.',
+      errorMessage: `Message must be at least ${MESSAGE_MIN_LENGTH} characters long.`,
+      errorGeneric: 'Something went wrong. Please try again.',
+    },
+    pl: {
+      errorName: 'Podaj imię i nazwisko.',
+      errorEmail: 'Podaj prawidłowy adres e-mail.',
+      errorMessage: `Wiadomość musi mieć co najmniej ${MESSAGE_MIN_LENGTH} znaków.`,
+      errorGeneric: 'Coś poszło nie tak. Spróbuj ponownie.',
+    },
+    es: {
+      errorName: 'Introduce tu nombre.',
+      errorEmail: 'Introduce un correo electrónico válido.',
+      errorMessage: `El mensaje debe tener al menos ${MESSAGE_MIN_LENGTH} caracteres.`,
+      errorGeneric: 'Algo salió mal. Inténtalo de nuevo.',
+    },
+  };
+
+  function getLocale(): keyof typeof messages {
+    const locale = document.documentElement.dataset.locale;
+    if (locale === 'pl' || locale === 'es') return locale;
+    return 'en';
+  }
+
+  function initContactForm() {
+    const form = document.getElementById('contact-form') as HTMLFormElement | null;
+    const submitBtn = document.getElementById('contact-submit') as HTMLButtonElement | null;
+    const errorEl = document.getElementById('contact-error');
+    const successEl = document.getElementById('contact-success');
+    const localeInput = document.getElementById('contact-locale') as HTMLInputElement | null;
+    if (!form || !submitBtn || !errorEl || !successEl || !localeInput) return;
+
+    const showError = (msg: string) => {
+      errorEl.textContent = msg;
+      errorEl.classList.remove('hidden');
+    };
+
+    const hideError = () => {
+      errorEl.textContent = '';
+      errorEl.classList.add('hidden');
+    };
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      hideError();
+
+      const locale = getLocale();
+      localeInput.value = locale;
+      const copy = messages[locale];
+      const formData = new FormData(form);
+      const name = String(formData.get('name') || '').trim();
+      const email = String(formData.get('email') || '').trim();
+      const message = String(formData.get('message') || '').trim();
+
+      if (name.length < 2) return showError(copy.errorName);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showError(copy.errorEmail);
+      if (message.length < MESSAGE_MIN_LENGTH) return showError(copy.errorMessage);
+
+      submitBtn.disabled = true;
+
+      try {
+        const attr = getAttribution();
+        const page_path = `${window.location.pathname}${window.location.search}`;
+
+        const payload = new FormData(form);
+        payload.set('consent_analytics', isConsentedForForm() ? 'true' : 'false');
+        payload.set('page_path', page_path);
+        if (attr.referrer) payload.set('referrer', attr.referrer);
+        if (attr.utm_source) payload.set('utm_source', attr.utm_source);
+        if (attr.utm_medium) payload.set('utm_medium', attr.utm_medium);
+        if (attr.utm_campaign) payload.set('utm_campaign', attr.utm_campaign);
+        if (attr.traffic_source) payload.set('traffic_source', attr.traffic_source);
+        if (attr.click_ids?.length) payload.set('click_ids', attr.click_ids.join(','));
+
+        const response = await fetch('/api/contact', { method: 'POST', body: payload });
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          const fieldMsg = Array.isArray(data.errors?.message) ? data.errors.message[0] : null;
+          showError(fieldMsg || data.message || copy.errorGeneric);
+          submitBtn.disabled = false;
+          return;
+        }
+
+        form.classList.add('hidden');
+        successEl.classList.remove('hidden');
+      } catch {
+        showError(copy.errorGeneric);
+        submitBtn.disabled = false;
+      }
+    });
+  }
+
+  initContactForm();
+  document.addEventListener('astro:page-load', initContactForm);
+</script>

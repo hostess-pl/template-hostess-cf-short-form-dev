@@ -1,0 +1,17 @@
+:root {
+  --background: #fdfaf6;
+  --background-secondary: #f7f1e8;
+  --foreground: #2a2622;
+  --foreground-muted: #5c554c;
+  --foreground-subtle: #8a8278;
+  --accent: #c4a46b;
+  --accent-hover: #b08f55;
+  --border: color-mix(in srgb, #c4a46b 18%, #fdfaf6);
+  --border-strong: color-mix(in srgb, #c4a46b 35%, #2a2622 10%);
+  --card: #fffdf9;
+  --ring: #c4a46b;
+  --error: #b54a4a;
+
+  --theme-font-sans: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
+  --theme-font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+}

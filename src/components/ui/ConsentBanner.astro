@@ -1,0 +1,66 @@
+---
+import { locales } from '@/config/site.config';
+
+interface Props {
+  enabled: boolean;
+}
+
+const { enabled } = Astro.props;
+
+const consentCopy = {
+  en: {
+    message: 'We use anonymous analytics to understand how visitors use this portfolio. No personal data is sold.',
+    accept: 'Accept',
+    decline: 'Decline',
+  },
+  pl: {
+    message: 'Używamy anonimowej analityki, aby zrozumieć, jak odwiedzający korzystają z portfolio. Nie sprzedajemy danych osobowych.',
+    accept: 'Akceptuję',
+    decline: 'Odrzuć',
+  },
+  es: {
+    message: 'Usamos analítica anónima para entender cómo los visitantes usan este portfolio. No vendemos datos personales.',
+    accept: 'Aceptar',
+    decline: 'Rechazar',
+  },
+};
+---
+
+{
+  enabled && (
+    <div
+      id="consent-banner"
+      class="fixed inset-x-0 bottom-0 z-50 hidden border-t border-border bg-card/95 px-4 py-4 shadow-[0_-8px_30px_-12px_rgba(42,38,34,0.2)] backdrop-blur-sm"
+      role="dialog"
+      aria-label="Cookie consent"
+    >
+      <div class="mx-auto flex max-w-4xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-foreground-muted">
+          {locales.map((locale) => (
+            <span data-lang={locale}>{consentCopy[locale].message}</span>
+          ))}
+        </p>
+        <div class="flex shrink-0 gap-2">
+          <button
+            type="button"
+            id="consent-decline"
+            class="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-foreground-muted transition-colors hover:text-foreground"
+          >
+            {locales.map((locale) => (
+              <span data-lang={locale}>{consentCopy[locale].decline}</span>
+            ))}
+          </button>
+          <button
+            type="button"
+            id="consent-accept"
+            class="rounded-full bg-foreground px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-background transition-colors hover:bg-accent"
+          >
+            {locales.map((locale) => (
+              <span data-lang={locale}>{consentCopy[locale].accept}</span>
+            ))}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

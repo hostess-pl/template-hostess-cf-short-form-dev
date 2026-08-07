@@ -1,0 +1,35 @@
+---
+import { content } from '@/config/content';
+import { locales } from '@/config/site.config';
+---
+
+<section id="services" data-review-id="services-section" class="page-section border-t border-border">
+  <div class="container">
+    {locales.map((locale) => (
+      <p class="section-label mb-3" data-lang={locale}>{content.services[locale].label}</p>
+    ))}
+    <h2 class="font-display text-3xl text-foreground md:text-4xl">
+      {locales.map((locale) => (
+        <span data-lang={locale}>{content.services[locale].title}</span>
+      ))}
+    </h2>
+    <p class="mt-4 max-w-2xl text-sm text-foreground-muted">
+      {locales.map((locale) => (
+        <span data-lang={locale}>{content.services[locale].subtitle}</span>
+      ))}
+    </p>
+
+    {locales.map((locale) => (
+      <div class="services-grid mt-12" data-lang={locale}>
+        {content.strengths[locale].slice(0, 4).map((skill, index) => (
+          <article class="relative">
+            <span class="service-index absolute top-4 right-4 md:top-6 md:right-6" aria-hidden="true">
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <h3 class="font-display text-xl text-foreground md:text-2xl">{skill}</h3>
+          </article>
+        ))}
+      </div>
+    ))}
+  </div>
+</section>

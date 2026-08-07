@@ -1,0 +1,176 @@
+---
+import { Image } from 'astro:assets';
+import { appearanceFacts, content, heroImage } from '@/config/content';
+import siteConfig from '@/config/site.config';
+import Chip from '@/components/ui/Chip.astro';
+import FactCard from '@/components/ui/FactCard.astro';
+import SocialIcon from '@/components/ui/SocialIcon.astro';
+import { locales } from '@/config/site.config';
+
+const hasEducation = locales.some((locale) => content.about[locale].education.degrees.length > 0);
+const hasCurrentWork = locales.some((locale) => content.about[locale].currentWork.entries.length > 0);
+const hasStrengths = locales.some((locale) => content.strengths[locale].length > 0);
+const hasFacts = appearanceFacts.length > 0;
+const hasLanguages = locales.some((locale) => content.languages[locale].length > 0);
+
+const socials = [
+  { name: 'instagram' as const, url: siteConfig.instagram, label: 'Instagram' },
+  { name: 'facebook' as const, url: siteConfig.facebook, label: 'Facebook' },
+  { name: 'tiktok' as const, url: siteConfig.tiktok, label: 'TikTok' },
+  { name: 'linkedin' as const, url: siteConfig.linkedin, label: 'LinkedIn' },
+].filter((s) => Boolean(String(s.url || '').trim()));
+
+
+const strengthsLabel: Record<(typeof locales)[number], string> = {
+  en: 'Strengths',
+  pl: 'Atuty',
+  es: 'Fortalezas',
+};
+---
+
+<section id="about" data-review-id="about-section" class="page-section border-t border-border">
+  <div class="container section-split">
+    <div>
+      <div class="overflow-hidden">
+        <Image
+          src={heroImage}
+          alt={siteConfig.name}
+          widths={[480, 640, 800]}
+          sizes="(max-width: 1024px) 100vw, 50vw"
+          class="aspect-[4/5] w-full object-cover"
+          loading="lazy"
+        />
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center gap-4">
+        {socials.map((social) => (
+          <a
+            href={social.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex h-10 w-10 items-center justify-center border border-border text-foreground transition-colors hover:border-accent hover:text-accent"
+            aria-label={social.label}
+          >
+            <SocialIcon name={social.name} size={16} />
+          </a>
+        ))}
+        <a
+          href={siteConfig.email ? `mailto:${siteConfig.email}` : '#contact'}
+          class="flex h-10 w-10 items-center justify-center border border-border text-foreground transition-colors hover:border-accent hover:text-accent"
+          aria-label="Email"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <rect x="1" y="3" width="14" height="10" rx="1" stroke="currentColor" stroke-width="1.2" />
+            <path d="M1 5l7 4 7-4" stroke="currentColor" stroke-width="1.2" />
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="flex flex-col justify-center">
+      {locales.map((locale) => (
+        <p class="section-label mb-4 text-foreground-subtle" data-lang={locale}>{content.about[locale].label}</p>
+      ))}
+
+      <h2 class="font-display text-[clamp(2rem,4vw,3rem)] leading-[1.1] text-foreground">
+        {locales.map((locale) => (
+          <span data-lang={locale}>
+            {content.about[locale].titleLead}{' '}
+            <em class="font-normal italic">{content.about[locale].titleEmphasis}</em>
+          </span>
+        ))}
+      </h2>
+
+      {locales.map((locale) => (
+        <div class="mt-6 space-y-4" data-lang={locale}>
+          <p class="text-sm leading-relaxed text-foreground-muted md:text-base">{content.about[locale].lead}</p>
+          {content.about[locale].body && (
+            <p class="text-sm leading-relaxed text-foreground-muted md:text-base">{content.about[locale].body}</p>
+          )}
+
+          {hasFacts ? (
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {appearanceFacts.map((fact) => (
+                <FactCard icon={fact.icon} label={fact.label[locale]} value={fact.value[locale]} />
+              ))}
+            </div>
+          ) : null}
+
+          {hasLanguages ? (
+            <div>
+              <p class="mb-3 text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-foreground-subtle">
+                {content.languagesLabel[locale]}
+              </p>
+              <ul class="flex flex-wrap gap-x-4 gap-y-1">
+                {content.languages[locale].map((lang) => (
+                  <li class="text-sm text-foreground">
+                    <span class="font-medium">{lang.name}</span>
+                    {lang.level ? (
+                      <span class="text-foreground-muted"> · {lang.level}</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {hasEducation || hasCurrentWork ? (
+            <div class="space-y-5 border-t border-border pt-5">
+              {hasEducation ? (
+                <div>
+                  <p class="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-foreground-subtle">
+                    {content.about[locale].education.label}
+                  </p>
+                  <div class="mt-3 space-y-3">
+                    {content.about[locale].education.degrees.map((degree) => (
+                      <div>
+                        <p class="text-sm font-medium text-foreground">{degree.name}</p>
+                        {degree.university ? (
+                          <p class="mt-0.5 text-sm text-foreground-muted">{degree.university}</p>
+                        ) : null}
+                        {degree.year ? (
+                          <p class="mt-0.5 text-xs text-accent">{degree.year}</p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {hasCurrentWork ? (
+                <div>
+                  <p class="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-foreground-subtle">
+                    {content.about[locale].currentWork.label}
+                  </p>
+                  <div class="mt-3 space-y-3">
+                    {content.about[locale].currentWork.entries.map((entry) => (
+                      <div class="flex items-start justify-between gap-4">
+                        <p class="text-sm font-medium text-foreground">{entry.name}</p>
+                        {entry.year ? (
+                          <p class="shrink-0 text-xs text-accent">{entry.year}</p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {hasStrengths ? (
+            <div class="pt-2">
+              <p class="mb-3 text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-foreground-subtle">
+                {strengthsLabel[locale]}
+              </p>
+              <div class="flex flex-wrap gap-2">
+                {content.strengths[locale].map((strength) => (
+                  <Chip text={strength} />
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

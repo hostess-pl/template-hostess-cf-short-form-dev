@@ -1,0 +1,79 @@
+---
+export const prerender = false
+
+import '@/styles/edit-tailwind.css'
+import '@/styles/edit-cms.css'
+import { EditApp } from '@/components/edit/EditApp'
+import { ProOnlyGate } from '@/components/edit/ProOnlyGate'
+import { getSessionUser } from '@/lib/supabaseAuth'
+import { resolveCmsSite } from '@/lib/cms/site'
+import { getPublicSupabaseAnonKey, getPublicSupabaseUrl } from '@/lib/cms/env'
+
+const { supabase, user } = await getSessionUser(
+  Astro.cookies,
+  Astro.request.headers.get('cookie') ?? undefined,
+)
+if (!supabase || !user) return Astro.redirect('/edit/login')
+
+const site = await resolveCmsSite()
+if (site) {
+  const { data: member } = await supabase
+    .from('cms_site_members')
+    .select('role')
+    .eq('site_id', site.id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!member) return Astro.redirect('/edit/login?error=invite')
+}
+
+const plan = site?.plan === 'pro' ? 'pro' : 'free'
+const email = user.email ?? 'editor'
+const needsPasswordSetup = user.user_metadata?.cms_password_set !== true
+const supabaseUrl = getPublicSupabaseUrl()
+const supabaseAnonKey = getPublicSupabaseAnonKey()
+const section = Astro.url.searchParams.get('section') ?? 'dashboard'
+const recovery = Astro.url.searchParams.get('recovery') === '1'
+---
+
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Edit · Hostess Webs</title>
+    <link rel="icon" href="/cms-brand/hostesswebs-mark.svg" type="image/svg+xml" />
+    <script is:inline>
+      try {
+        const t = localStorage.getItem('hw-cms-theme')
+        if (t === 'dark' || t === 'light') {
+          document.documentElement.dataset.cmsTheme = t
+        }
+      } catch (_) {}
+    </script>
+  </head>
+  <body class="cms-root min-h-screen antialiased" data-cms-theme="light">
+    <script is:inline>
+      try {
+        const t = localStorage.getItem('hw-cms-theme')
+        if (t === 'dark' || t === 'light') document.body.dataset.cmsTheme = t
+      } catch (_) {}
+    </script>
+    {
+      plan !== 'pro' ? (
+        <ProOnlyGate client:load />
+      ) : (
+        <EditApp
+          client:load
+          email={email}
+          plan={plan}
+          needsPasswordSetup={needsPasswordSetup || recovery}
+          forcePasswordSetup={recovery}
+          supabaseUrl={supabaseUrl}
+          supabaseAnonKey={supabaseAnonKey}
+          initialSection={section}
+        />
+      )
+    }
+  </body>
+</html>

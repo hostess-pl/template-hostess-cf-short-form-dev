@@ -1,0 +1,11 @@
+node_modules
+dist
+.astro
+.env
+.env.local
+.DS_Store
+.wrangler
+public/cms-assets
+src/generated/*
+!src/generated/public-cms-env.ts
+build-log.txt

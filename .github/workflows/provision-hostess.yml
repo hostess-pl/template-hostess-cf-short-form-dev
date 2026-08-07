@@ -1,0 +1,151 @@
+name: Provision hostess
+
+on:
+  repository_dispatch:
+    types: [provision]
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Write provision payload
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            const cp = context.payload.client_payload || {};
+            let payload = cp;
+            if (typeof cp.hostess === 'string') {
+              payload = { ...JSON.parse(cp.hostess), callbackUrl: cp.callbackUrl ?? '' };
+            }
+            // Prefer top-level assetsB64 (redaction-safe transport) when present.
+            if (cp.assetsB64 && !payload.assetsB64) {
+              payload.assetsB64 = cp.assetsB64;
+            }
+            fs.writeFileSync('payload.json', JSON.stringify(payload, null, 2));
+
+      - name: Provision hostess data and assets
+        run: node scripts/provision-from-payload.mjs payload.json
+
+      - name: Validate and deploy preview
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WF_CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WF_CF_PLATFORM_ZONE: ${{ secrets.WF_CF_PLATFORM_ZONE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          CMS_OPS_OWNER_EMAILS: ${{ secrets.CMS_OPS_OWNER_EMAILS }}
+          REVIEW_ADMIN_CODE: ${{ secrets.REVIEW_ADMIN_CODE }}
+          REVIEW_AUTH_SALT: ${{ secrets.REVIEW_AUTH_SALT }}
+          WORKERS_DEV_SUBDOMAIN: ${{ secrets.WORKERS_DEV_SUBDOMAIN }}
+          REVIEW_WEBHOOK_SECRET: ${{ secrets.REVIEW_WEBHOOK_SECRET }}
+          N8N_REVIEW_COMPLETE_URL: ${{ secrets.N8N_REVIEW_COMPLETE_URL }}
+          PREVIEW_ID: ${{ github.event.client_payload.submissionId }}
+          HOSTING_PLAN: ${{ github.event.client_payload.hostingPlan }}
+        run: |
+          set -euo pipefail
+          # Short-intake (lite) / complimentary develop path → Pro CMS runtime (no Stripe).
+          INTAKE=$(node -e "
+            const fs=require('node:fs');
+            const p=JSON.parse(fs.readFileSync('payload.json','utf8'));
+            const h=typeof p.hostess==='string'?JSON.parse(p.hostess):p;
+            process.stdout.write(String(h.intake||p.intake||'').trim().toLowerCase());
+          ")
+          if [[ "${INTAKE}" == "lite" || "${INTAKE}" == "mvp" || -z "${INTAKE}" ]]; then
+            export HOSTING_PLAN=pro
+            export PORTFOLIO_PRODUCT_MODE=short_form
+            export REVIEW_MODE_ENABLED=false
+            export PORTFOLIO_STATUS=draft
+            echo "Short-form tip → HOSTING_PLAN=pro PORTFOLIO_PRODUCT_MODE=short_form"
+          elif [[ -z "${HOSTING_PLAN:-}" ]]; then
+            export HOSTING_PLAN=pro
+            export PORTFOLIO_PRODUCT_MODE=short_form
+            export REVIEW_MODE_ENABLED=false
+          fi
+          # Skip astro check on provision path: CF vite plugin still boots workerd,
+          # and check is redundant with deploy:preview build. Keep CI push workflow for typecheck.
+          DEPLOY_LOG=$(pnpm deploy:preview 2>&1 | tee /dev/stderr)
+          RESULT_LINE=$(echo "$DEPLOY_LOG" | grep '\[deploy:preview\] Result:' | tail -n1)
+          if [[ -z "$RESULT_LINE" ]]; then
+            echo "::error::deploy:preview did not emit Result line"
+            exit 1
+          fi
+          echo "$RESULT_LINE" | sed 's/^\[deploy:preview\] Result: //' > deploy-result.json
+          # Do not emit client_code to GITHUB_OUTPUT (avoids Action log leakage).
+          echo "preview_url=$(node -pe "JSON.parse(require('fs').readFileSync('deploy-result.json','utf8')).previewUrl")" >> "$GITHUB_OUTPUT"
+          echo "submission_id=$(node -pe "JSON.parse(require('fs').readFileSync('deploy-result.json','utf8')).submissionId")" >> "$GITHUB_OUTPUT"
+          echo "worker_name=$(node -pe "JSON.parse(require('fs').readFileSync('deploy-result.json','utf8')).workerName || ''")" >> "$GITHUB_OUTPUT"
+
+      - name: Assert preview is not tip-template content
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
+        run: |
+          set -euo pipefail
+          node scripts/assert-preview-not-template.mjs --url "$PREVIEW_URL"
+
+      - name: Callback to n8n
+        if: github.event.client_payload.callbackUrl != ''
+        env:
+          CALLBACK_URL: ${{ github.event.client_payload.callbackUrl }}
+          REPO_NAME: ${{ github.repository }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
+          SUBMISSION_ID: ${{ steps.deploy.outputs.submission_id }}
+          WORKER_NAME: ${{ steps.deploy.outputs.worker_name }}
+          OPS_PROVISION_SECRET: ${{ secrets.OPS_PROVISION_CALLBACK_SECRET }}
+        run: |
+          set -euo pipefail
+          ALLOWED_HOSTS='ops.ilurodigital.com hostess-ops.ilurodigital.com'
+          HOST=$(node -e "const u=new URL(process.env.CALLBACK_URL); if(u.protocol!=='https:') process.exit(2); process.stdout.write(u.hostname)")
+          ok=0
+          for h in ${ALLOWED_HOSTS}; do
+            if [[ "${HOST}" == "${h}" ]]; then ok=1; break; fi
+          done
+          if [[ "${ok}" != "1" ]]; then
+            echo "::error::callback_url_host_not_allowed:${HOST}"
+            exit 1
+          fi
+          if [[ -z "${OPS_PROVISION_SECRET:-}" ]]; then
+            echo "::error::OPS_PROVISION_CALLBACK_SECRET is required for n8n callback auth"
+            exit 1
+          fi
+          BODY=$(node -e "
+            const fs=require('node:fs');
+            const hostess=JSON.parse(fs.readFileSync('src/content/hostess.json','utf8'));
+            const deploy=JSON.parse(fs.readFileSync('deploy-result.json','utf8'));
+            console.log(JSON.stringify({
+              repo: process.env.REPO_NAME,
+              previewUrl: process.env.PREVIEW_URL,
+              clientCode: deploy.clientCode || '',
+              submissionId: process.env.SUBMISSION_ID,
+              workerName: process.env.WORKER_NAME || '',
+              contactRef: hostess.contactRef || '',
+              domain: hostess.domain || {},
+              intake: hostess.intake || '',
+              tallyFormId: hostess.tallyFormId || '',
+              email: (hostess.profile && hostess.profile.email) || '',
+              displayName: (hostess.profile && hostess.profile.displayName) || '',
+              cmsSiteSlug: deploy.cmsSiteSlug || ''
+            }));
+          ")
+          curl -fsS -X POST "$CALLBACK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-Ops-Provision-Secret: ${OPS_PROVISION_SECRET}" \
+            -d "$BODY"

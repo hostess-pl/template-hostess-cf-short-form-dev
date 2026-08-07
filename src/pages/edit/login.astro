@@ -1,0 +1,59 @@
+---
+export const prerender = false
+
+import '@/styles/edit-tailwind.css'
+import '@/styles/edit-cms.css'
+import { LoginShell } from '@/components/edit/LoginForm'
+import { getPublicSupabaseAnonKey, getPublicSupabaseUrl } from '@/lib/cms/env'
+import { getSessionUser } from '@/lib/supabaseAuth'
+import { CMS_MARK_SRC, CMS_PRODUCT_NAME, CMS_TEMPLATE_LABEL } from '@/cms/brand'
+
+const { user } = await getSessionUser(Astro.cookies, Astro.request.headers.get('cookie') ?? undefined)
+if (user) return Astro.redirect('/edit/app')
+
+const supabaseUrl = getPublicSupabaseUrl()
+const supabaseAnonKey = getPublicSupabaseAnonKey()
+const error = Astro.url.searchParams.get('error')
+const configError = error === 'config' || !supabaseUrl || !supabaseAnonKey
+const authError = error === 'auth'
+const inviteError = error === 'invite'
+---
+
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Sign in · Hostess Webs</title>
+    <link rel="icon" href="/cms-brand/hostesswebs-mark.svg" type="image/svg+xml" />
+    <script is:inline>
+      try {
+        const t = localStorage.getItem('hw-cms-theme')
+        if (t === 'dark' || t === 'light') {
+          document.documentElement.dataset.cmsTheme = t
+          document.documentElement.dataset.cmsThemeReady = '1'
+        }
+      } catch (_) {}
+    </script>
+  </head>
+  <body class="cms-root antialiased" data-cms-theme="light">
+    <script is:inline>
+      try {
+        const t = localStorage.getItem('hw-cms-theme')
+        if (t === 'dark' || t === 'light') document.body.dataset.cmsTheme = t
+      } catch (_) {}
+    </script>
+    <LoginShell
+      client:load
+      supabaseUrl={supabaseUrl || ''}
+      supabaseAnonKey={supabaseAnonKey || ''}
+      productName={CMS_PRODUCT_NAME}
+      templateLabel={CMS_TEMPLATE_LABEL}
+      markSrc={CMS_MARK_SRC}
+      configError={configError}
+      authError={authError}
+      inviteError={inviteError}
+    />
+  </body>
+</html>

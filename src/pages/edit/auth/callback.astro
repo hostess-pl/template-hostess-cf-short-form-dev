@@ -1,0 +1,35 @@
+---
+export const prerender = false
+
+import '@/styles/edit-tailwind.css'
+import '@/styles/edit-cms.css'
+import { AuthSessionFromUrl } from '@/components/edit/AuthSessionFromUrl'
+import { getPublicSupabaseAnonKey, getPublicSupabaseUrl } from '@/lib/cms/env'
+
+/**
+ * PKCE / hash / token_hash completion must run in the browser.
+ * Server-side exchangeCodeForSession without the PKCE verifier fails and used to
+ * redirect to ?error=auth before the client could finish sign-in.
+ */
+const supabaseUrl = getPublicSupabaseUrl()
+const supabaseAnonKey = getPublicSupabaseAnonKey()
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  return Astro.redirect('/edit/login?error=config')
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Signing in · Hostess Webs</title>
+    <link rel="icon" href="/cms-brand/hostesswebs-mark.svg" type="image/svg+xml" />
+  </head>
+  <body class="cms-root cms-login antialiased" data-cms-theme="light">
+    <p class="cms-login__lede" style="text-align:center">Completing sign-in…</p>
+    <AuthSessionFromUrl client:load supabaseUrl={supabaseUrl} supabaseAnonKey={supabaseAnonKey} />
+  </body>
+</html>

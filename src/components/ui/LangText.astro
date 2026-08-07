@@ -1,0 +1,18 @@
+---
+import { locales, type Locale } from '@/config/site.config';
+
+interface Props {
+  text: Record<Locale, string>;
+  class?: string;
+}
+
+const { text, class: className = '' } = Astro.props;
+---
+
+{
+  locales.map((locale) => (
+    <span data-lang={locale} class={className}>
+      {text[locale]}
+    </span>
+  ))
+}

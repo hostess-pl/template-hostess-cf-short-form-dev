@@ -1,0 +1,51 @@
+name: Deploy production
+
+on:
+  repository_dispatch:
+    types: [deploy-production]
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate and deploy production
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          REVIEW_ADMIN_CODE: ${{ secrets.REVIEW_ADMIN_CODE }}
+          REVIEW_AUTH_SALT: ${{ secrets.REVIEW_AUTH_SALT }}
+          REVIEW_WEBHOOK_SECRET: ${{ secrets.REVIEW_WEBHOOK_SECRET }}
+          N8N_REVIEW_COMPLETE_URL: ${{ secrets.N8N_REVIEW_COMPLETE_URL }}
+          ANALYTICS_SALT: ${{ secrets.ANALYTICS_SALT }}
+          RATE_LIMIT_SALT: ${{ secrets.RATE_LIMIT_SALT }}
+          PRODUCTION_HOSTNAME: ${{ github.event.client_payload.productionHostname }}
+          SUBMISSION_ID: ${{ github.event.client_payload.submissionId }}
+          WORKER_NAME: ${{ github.event.client_payload.workerName }}
+          ATTACH_CUSTOM_DOMAIN: ${{ github.event.client_payload.attachCustomDomain != false }}
+          HOSTING_PLAN: ${{ github.event.client_payload.hostingPlan }}
+        run: |
+          set -euo pipefail
+          pnpm check
+          DEPLOY_LOG=$(pnpm deploy:production 2>&1 | tee /dev/stderr)
+          RESULT_LINE=$(echo "$DEPLOY_LOG" | grep '\[deploy:production\] Result:' | tail -n1)
+          echo "$RESULT_LINE" | sed 's/^\[deploy:production\] Result: //' > deploy-result.json
+          echo "production_url=$(node -pe "JSON.parse(require('fs').readFileSync('deploy-result.json','utf8')).productionUrl")" >> "$GITHUB_OUTPUT"
+          echo "worker_name=$(node -pe "JSON.parse(require('fs').readFileSync('deploy-result.json','utf8')).workerName || ''")" >> "$GITHUB_OUTPUT"
+          echo "submission_id=$(node -pe "JSON.parse(require('fs').readFileSync('deploy-result.json','utf8')).submissionId")" >> "$GITHUB_OUTPUT"
+          echo "hostname=$(node -pe "JSON.parse(require('fs').readFileSync('deploy-result.json','utf8')).hostname || ''")" >> "$GITHUB_OUTPUT"

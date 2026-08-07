@@ -1,0 +1,182 @@
+---
+import '@/styles/global.css';
+import siteConfig from '@/config/site.config';
+import { seo, localePath, localeUrl } from '@/config/seo';
+import { getDefaultLocale, getLocales, locales, type Locale } from '@/config/site.config';
+import { heroImage } from '@/config/content';
+import { getImage } from 'astro:assets';
+import ConsentBanner from '@/components/ui/ConsentBanner.astro';
+import PortfolioDraftBanner from '@/components/PortfolioDraftBanner.astro';
+import { getAnalyticsFlags } from '@/lib/analyticsFlags';
+import { getReviewFlags } from '@/lib/reviewFlags';
+import { loadHostess } from '@/lib/hostess';
+import {
+  computePortfolioCompletion,
+  shortFormHasBakedHeroDefault,
+} from '@/lib/cms/portfolioCompletion';
+import { getCmsSiteSlug } from '@/lib/cms/env';
+const defaultLocale = getDefaultLocale();
+const locale = Astro.locals.locale ?? defaultLocale;
+const hostess = loadHostess(Astro.locals.cmsHostess);
+const analyticsFlags = getAnalyticsFlags();
+const reviewFlags = getReviewFlags();
+const showDraftBanner = Boolean(Astro.locals.portfolioDraft);
+const draftCompletion = showDraftBanner
+  ? computePortfolioCompletion(
+      (Astro.locals.cmsHostess as Record<string, unknown> | undefined)
+        ?? (hostess as unknown as Record<string, unknown>),
+      { hasBakedHero: shortFormHasBakedHeroDefault() },
+    )
+  : null;
+const draftSiteSlug = getCmsSiteSlug();
+const meta = seo[locale];
+const canonicalUrl = localeUrl(locale, siteConfig.url);
+const ogImage = await getImage({ src: heroImage, width: 1200, height: 630, format: 'jpg' });
+const ogImageUrl = new URL(ogImage.src, siteConfig.url).href;
+
+const sameAs = [siteConfig.instagram, siteConfig.facebook, siteConfig.linkedin, siteConfig.tiktok].filter(Boolean);
+const knowsLanguage = hostess.languages.map((lang) => lang.name);
+const ogLocaleAlternates: Record<Locale, string> = {
+  en: 'en_US',
+  pl: 'pl_PL',
+  es: 'es_ES',
+};
+const activeLocales = getLocales();
+const localePaths = Object.fromEntries(activeLocales.map((code) => [code, localePath(code)])) as Record<Locale, string>;
+const enabledLocales = [...activeLocales];
+---
+
+<!doctype html>
+<html
+  lang={locale}
+  data-locale={locale}
+  data-consent-enabled={analyticsFlags.consentEnabled ? '1' : '0'}
+  data-analytics-enabled={!showDraftBanner && analyticsFlags.analyticsEnabled ? '1' : '0'}
+  data-review-available={reviewFlags.reviewAvailable ? '1' : '0'}
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{meta.title}</title>
+    <meta name="description" content={meta.description} />
+    <meta name="author" content={siteConfig.name} />
+    <meta name="theme-color" content={siteConfig.branding.themeColor} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    {activeLocales.map((alt) => (
+      <link rel="alternate" hreflang={alt} href={localeUrl(alt, siteConfig.url)} />
+    ))}
+    <link rel="alternate" hreflang="x-default" href={localeUrl(defaultLocale, siteConfig.url)} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={meta.title} />
+    <meta property="og:description" content={meta.description} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:locale" content={meta.ogLocale} />
+    {activeLocales.filter((alt) => alt !== locale).map((alt) => (
+      <meta property="og:locale:alternate" content={ogLocaleAlternates[alt]} />
+    ))}
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={meta.title} />
+    <meta name="twitter:description" content={meta.description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
+    <script type="application/ld+json" set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Person',
+      name: siteConfig.name,
+      jobTitle: meta.jobTitle,
+      email: siteConfig.email,
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: hostess.profile.location,
+      },
+      knowsLanguage,
+      url: canonicalUrl,
+      sameAs,
+    })} />
+
+    <script is:inline define:vars={{ serverLocale: locale, localePaths, enabledLocales, defaultLocale }}>
+      (function () {
+        document.documentElement.lang = serverLocale;
+        document.documentElement.dataset.locale = serverLocale;
+        localStorage.setItem('locale', serverLocale);
+      })();
+    </script>
+
+  </head>
+  <body class:list={['font-sans antialiased', showDraftBanner && 'has-draft-banner']}>
+    {showDraftBanner ? <PortfolioDraftBanner locale={locale} completion={draftCompletion} siteSlug={draftSiteSlug} /> : null}
+    <slot />
+
+    <ConsentBanner enabled={analyticsFlags.consentEnabled} />
+
+    <script is:inline define:vars={{ localePaths, enabledLocales, defaultLocale }}>
+      function setLocale(locale) {
+        if (!enabledLocales.includes(locale)) return;
+        document.cookie = 'locale=' + locale + ';path=/;max-age=31536000;SameSite=Lax';
+        localStorage.setItem('locale', locale);
+        window.location.href = localePaths[locale] || '/';
+      }
+
+      document.querySelectorAll('[data-locale-btn]').forEach((btn) => {
+        btn.addEventListener('click', () => setLocale(btn.dataset.localeBtn));
+      });
+
+      const current = document.documentElement.dataset.locale || defaultLocale;
+      document.querySelectorAll('[data-locale-btn]').forEach((btn) => {
+        btn.setAttribute('aria-pressed', btn.dataset.localeBtn === current ? 'true' : 'false');
+      });
+    </script>
+  </body>
+</html>
+
+<script>
+  import { captureAttributionOnce } from '@/scripts/attribution';
+
+  captureAttributionOnce();
+
+  function scheduleConsent() {
+    if (document.documentElement.dataset.consentEnabled !== '1') return;
+    const load = () => {
+      void import('@/scripts/consent.client.ts').then((mod) => mod.initConsentBanner());
+    };
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(load, { timeout: 3000 });
+    } else {
+      setTimeout(load, 1);
+    }
+  }
+
+  function scheduleAnalytics() {
+    const load = () => {
+      void import('@/scripts/analytics.client.ts').then((mod) => mod.setupAnalyticsLifecycle());
+    };
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(load, { timeout: 3000 });
+    } else {
+      setTimeout(load, 1);
+    }
+  }
+
+  function scheduleReviewMode() {
+    const load = () => {
+      void import('@/scripts/review.client.ts').then((mod) => mod.setupReviewMode());
+    };
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(load, { timeout: 2000 });
+    } else {
+      setTimeout(load, 1);
+    }
+  }
+
+  scheduleConsent();
+  scheduleAnalytics();
+  scheduleReviewMode();
+  document.addEventListener('astro:page-load', scheduleConsent);
+  document.addEventListener('astro:page-load', scheduleAnalytics);
+  document.addEventListener('astro:page-load', scheduleReviewMode);
+</script>
