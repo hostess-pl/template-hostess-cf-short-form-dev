@@ -79,6 +79,7 @@ jobs:
             export HOSTING_PLAN=pro
             export PORTFOLIO_PRODUCT_MODE=short_form
             export REVIEW_MODE_ENABLED=false
+            export PORTFOLIO_STATUS=draft
           fi
           # Skip astro check on provision path: CF vite plugin still boots workerd,
           # and check is redundant with deploy:preview build. Keep CI push workflow for typecheck.
