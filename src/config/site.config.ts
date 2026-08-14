@@ -1,6 +1,6 @@
 import { RESEND_FROM, RESEND_TO } from 'astro:env/server';
 
-import { loadHostess, loadHostessJson } from '@/lib/hostess';
+import { loadHostess } from '@/lib/hostess';
 import { readEnvString } from '@/lib/runtimeEnv';
 import type { HostessData } from '@/content/hostess.schema';
 
@@ -81,10 +81,28 @@ export function getLocales(): Locale[] {
 }
 
 /**
- * Baked locales for static iteration in components.
- * Prefer getLocales() in middleware / request-scoped routing.
+ * Request-scoped locales for Astro `{locales.map(...)}`.
+ * Reads CMS overlay via getLocales() — not the baked hostess.json snapshot.
  */
-export const locales: Locale[] = [...(loadHostessJson().locales as Locale[])];
+export const locales: Locale[] = new Proxy([] as Locale[], {
+  get(_target, prop) {
+    const list = getLocales();
+    const value = Reflect.get(list, prop, list);
+    return typeof value === 'function' ? (value as (...args: never[]) => unknown).bind(list) : value;
+  },
+  ownKeys() {
+    return Reflect.ownKeys(getLocales());
+  },
+  getOwnPropertyDescriptor(_target, prop) {
+    return Reflect.getOwnPropertyDescriptor(getLocales(), prop);
+  },
+  has(_target, prop) {
+    return Reflect.has(getLocales(), prop);
+  },
+  getPrototypeOf() {
+    return Array.prototype;
+  },
+});
 
 function buildSiteConfig(hostess: HostessData): SiteConfig {
   return {

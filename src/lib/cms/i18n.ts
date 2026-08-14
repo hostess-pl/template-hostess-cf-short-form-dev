@@ -792,6 +792,53 @@ const COPY_FIELD_KEYS = [
   'contactTitle',
 ] as const satisfies readonly (keyof CopyFields)[]
 
+const MARKETING_COPY_KEYS = [
+  'headline',
+  'greeting',
+  'profile',
+  'aboutLead',
+  'experienceSummary',
+] as const satisfies readonly (keyof CopyFields)[]
+
+function fieldFromBucket(bucket: unknown, key: string): string {
+  if (!bucket || typeof bucket !== 'object') return ''
+  return String((bucket as Record<string, unknown>)[key] || '').trim()
+}
+
+/**
+ * Public-site copy pick: locale bucket wins. EN/ES marketing never falls back to PL.
+ * Empty marketing stays empty so section builders apply locale-specific defaults.
+ */
+export function pickPublicCopyField(
+  copyByLocale: Record<string, unknown> | null | undefined,
+  flatCopy: Record<string, unknown> | null | undefined,
+  locale: ContentLocale,
+  key: string,
+): string {
+  const buckets = copyByLocale && typeof copyByLocale === 'object' ? copyByLocale : {}
+  const localVal = fieldFromBucket(buckets[locale], key)
+  if (localVal) return localVal
+
+  const isMarketing = (MARKETING_COPY_KEYS as readonly string[]).includes(key)
+  if (locale !== 'pl' && isMarketing) return ''
+
+  const plVal = fieldFromBucket(buckets.pl, key)
+  if (plVal) return plVal
+  return String(flatCopy?.[key] || '').trim()
+}
+
+export function publicCopyForLocale(
+  copyByLocale: Record<string, unknown> | null | undefined,
+  flatCopy: Record<string, unknown> | null | undefined,
+  locale: ContentLocale,
+): Record<(typeof COPY_FIELD_KEYS)[number], string> {
+  const out = {} as Record<(typeof COPY_FIELD_KEYS)[number], string>
+  for (const key of COPY_FIELD_KEYS) {
+    out[key] = pickPublicCopyField(copyByLocale, flatCopy, locale, key)
+  }
+  return out
+}
+
 function copyFieldsFromRecord(source: unknown): CopyFields {
   if (!source || typeof source !== 'object') return {}
   const row = source as Record<string, unknown>

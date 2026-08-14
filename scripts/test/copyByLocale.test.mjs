@@ -6,6 +6,8 @@ import {
   getCopyFieldsRaw,
   getCopyForLocale,
   migrateCopyByLocale,
+  pickPublicCopyField,
+  publicCopyForLocale,
   seedCopyLocaleIfMissing,
   setCopyForLocale,
 } from '../../src/lib/cms/i18n.ts'
@@ -68,4 +70,36 @@ test('defaultCopyPlaceholders en has labels only', () => {
   const en = defaultCopyPlaceholders('en', 'Anna')
   assert.equal(en.aboutLabel, 'About')
   assert.equal(en.headline, undefined)
+})
+
+test('pickPublicCopyField does not copy PL headline into EN', () => {
+  const copyByLocale = {
+    pl: { headline: 'PL headline', aboutLabel: 'O mnie' },
+    en: { aboutLabel: 'About' },
+  }
+  const flat = { headline: 'PL headline' }
+  assert.equal(pickPublicCopyField(copyByLocale, flat, 'en', 'headline'), '')
+  assert.equal(pickPublicCopyField(copyByLocale, flat, 'en', 'aboutLabel'), 'About')
+  assert.equal(pickPublicCopyField(copyByLocale, flat, 'pl', 'headline'), 'PL headline')
+})
+
+test('pickPublicCopyField returns filled EN headline as-is', () => {
+  const copyByLocale = {
+    pl: { headline: 'PL headline' },
+    en: { headline: 'EN headline', aboutLabel: 'About' },
+  }
+  assert.equal(pickPublicCopyField(copyByLocale, { headline: 'PL headline' }, 'en', 'headline'), 'EN headline')
+})
+
+test('publicCopyForLocale leaves empty EN marketing empty', () => {
+  const copyByLocale = {
+    pl: { headline: 'PL marketing', greeting: 'Cześć', profile: 'PL bio', aboutLead: 'PL about' },
+    en: { aboutLabel: 'About', experienceLabel: 'Experience' },
+  }
+  const en = publicCopyForLocale(copyByLocale, copyByLocale.pl, 'en')
+  assert.equal(en.headline, '')
+  assert.equal(en.greeting, '')
+  assert.equal(en.profile, '')
+  assert.equal(en.aboutLead, '')
+  assert.equal(en.aboutLabel, 'About')
 })

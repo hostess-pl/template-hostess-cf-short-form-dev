@@ -7,6 +7,7 @@ import {
   parseHostessOverlay,
   runWithHostessData,
 } from '@/lib/hostess'
+import { isShortFormProductMode } from '@/lib/portfolioMode'
 import { readEnvString } from '@/lib/runtimeEnv'
 
 type OverlayStore = { data: HostessData }
@@ -23,8 +24,9 @@ export async function withCmsHostessOverlay<T>(
 ): Promise<T> {
   const base = loadHostessJson()
   const hostingPlan = readEnvString('HOSTING_PLAN').trim().toLowerCase()
-  // Normal (non-Pro) previews must never pull template CMS docs (e.g. leftover tpl-*).
-  if (hostingPlan === 'normal') {
+  // Normal (non-Pro) previews must never pull leftover tpl-* CMS docs.
+  // Short-form product mode always overlays — public pages must reflect CMS saves.
+  if (hostingPlan === 'normal' && !isShortFormProductMode()) {
     return await fn(null)
   }
   try {

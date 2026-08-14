@@ -1,5 +1,6 @@
 import type { ImageMetadata } from 'astro';
 import type { Locale } from './site.config';
+import { publicCopyForLocale } from '@/lib/cms/i18n';
 import { loadHostess } from '@/lib/hostess';
 
 let _bundleRef: ReturnType<typeof loadHostess> | null = null
@@ -355,33 +356,7 @@ function buildContentBundle() {
       : {};
 
   function copyFor(locale: 'en' | 'pl' | 'es') {
-    const localized = copyByLocale[locale];
-    const pl = copyByLocale.pl;
-    const bucketEmpty =
-      !localized ||
-      typeof localized !== 'object' ||
-      !Object.values(localized as Record<string, unknown>).some((v) => String(v || '').trim());
-    const base = !bucketEmpty ? localized : pl ?? hostessCopy;
-    const pick = (key: string) => {
-      const fromBase = base && typeof base === 'object' ? (base as Record<string, unknown>)[key] : '';
-      const fromFlat = (hostessCopy as Record<string, unknown>)[key];
-      return String(fromBase || fromFlat || '').trim();
-    };
-    return {
-      headline: pick('headline'),
-      greeting: pick('greeting'),
-      profile: pick('profile'),
-      aboutLead: pick('aboutLead'),
-      experienceSummary: pick('experienceSummary'),
-      galleryLabel: pick('galleryLabel'),
-      galleryTitle: pick('galleryTitle'),
-      aboutLabel: pick('aboutLabel'),
-      aboutTitle: pick('aboutTitle'),
-      experienceLabel: pick('experienceLabel'),
-      experienceTitle: pick('experienceTitle'),
-      contactLabel: pick('contactLabel'),
-      contactTitle: pick('contactTitle'),
-    };
+    return publicCopyForLocale(copyByLocale, hostessCopy as Record<string, unknown>, locale);
   }
   const copyHeadline = String(hostessCopy.headline || '').trim();
   const copyGreeting = String(hostessCopy.greeting || '').trim();
@@ -479,10 +454,10 @@ function buildContentBundle() {
     hero: {
       en: {
         eyebrow: `Professional Hostess · ${coverageLabel}`,
-        headlineLead: headlineFor('en') || (useUserHeadline ? copyHeadline : 'The art'),
-        headlineEmphasis: headlineFor('en') || copyHeadline ? '' : 'of presence',
-        bioIntro: copyFor('en').greeting || copyGreeting || `Hi, I'm ${displayName}!`,
-        bioBody: copyFor('en').profile || heroProfileLine,
+        headlineLead: headlineFor('en') || 'The art',
+        headlineEmphasis: headlineFor('en') ? '' : 'of presence',
+        bioIntro: copyFor('en').greeting || `Hi, I'm ${displayName}!`,
+        bioBody: copyFor('en').profile || '',
         availability: 'Available for events',
         cta: 'Enquire',
         ctaSecondary: 'View work ↗',
@@ -499,10 +474,10 @@ function buildContentBundle() {
       },
       es: {
         eyebrow: `Azafata profesional · ${coverageLabel}`,
-        headlineLead: headlineFor('es') || (useUserHeadline ? copyHeadline : 'El arte'),
-        headlineEmphasis: headlineFor('es') || copyHeadline ? '' : 'de la presencia',
-        bioIntro: copyFor('es').greeting || copyGreeting || `¡Hola, soy ${displayName}!`,
-        bioBody: copyFor('es').profile || heroProfileLine,
+        headlineLead: headlineFor('es') || 'El arte',
+        headlineEmphasis: headlineFor('es') ? '' : 'de la presencia',
+        bioIntro: copyFor('es').greeting || `¡Hola, soy ${displayName}!`,
+        bioBody: copyFor('es').profile || '',
         availability: 'Disponible para eventos',
         cta: 'Consultar',
         ctaSecondary: 'Ver trabajo ↗',
@@ -543,8 +518,8 @@ function buildContentBundle() {
         label: copyFor('en').aboutLabel || 'About',
         titleLead: copyFor('en').aboutTitle || 'Hospitality',
         titleEmphasis: copyFor('en').aboutTitle ? '' : 'as an art',
-        lead: copyFor('en').aboutLead || aboutLeadLine,
-        body: copyFor('en').experienceSummary || aboutBodyLine,
+        lead: copyFor('en').aboutLead || '',
+        body: copyFor('en').experienceSummary || '',
         education: {
           label: 'Studies',
           degrees: buildEducationDegrees('en'),
@@ -573,8 +548,8 @@ function buildContentBundle() {
         label: copyFor('es').aboutLabel || 'Sobre mí',
         titleLead: copyFor('es').aboutTitle || 'La hospitalidad',
         titleEmphasis: copyFor('es').aboutTitle ? '' : 'como arte',
-        lead: copyFor('es').aboutLead || aboutLeadLine,
-        body: copyFor('es').experienceSummary || aboutBodyLine,
+        lead: copyFor('es').aboutLead || '',
+        body: copyFor('es').experienceSummary || '',
         education: {
           label: 'Estudios',
           degrees: buildEducationDegrees('es'),
@@ -755,6 +730,7 @@ function buildContentBundle() {
 }
 
 function getContentBundle() {
+  // Cache keyed on overlay identity from loadHostess() (ALS), not baked JSON alone.
   const hostess = loadHostess();
   if (_bundle && _bundleRef === hostess) return _bundle;
   _bundleRef = hostess;
