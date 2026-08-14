@@ -357,7 +357,11 @@ function buildContentBundle() {
   function copyFor(locale: 'en' | 'pl' | 'es') {
     const localized = copyByLocale[locale];
     const pl = copyByLocale.pl;
-    const base = localized ?? pl ?? hostessCopy;
+    const bucketEmpty =
+      !localized ||
+      typeof localized !== 'object' ||
+      !Object.values(localized as Record<string, unknown>).some((v) => String(v || '').trim());
+    const base = !bucketEmpty ? localized : pl ?? hostessCopy;
     const pick = (key: string) => {
       const fromBase = base && typeof base === 'object' ? (base as Record<string, unknown>)[key] : '';
       const fromFlat = (hostessCopy as Record<string, unknown>)[key];

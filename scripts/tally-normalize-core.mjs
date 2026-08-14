@@ -1055,6 +1055,34 @@ function parseLanguages(value, fields, map) {
     .filter(Boolean);
 }
 
+function defaultCopyPlaceholders(locale, displayName = '') {
+  if (locale === 'en') {
+    return {
+      galleryLabel: 'Portfolio',
+      galleryTitle: 'Selected events',
+      aboutLabel: 'About',
+      aboutTitle: 'Hospitality as an art',
+      experienceLabel: 'Experience',
+      experienceTitle: 'Employment History',
+      contactLabel: 'Contact',
+      contactTitle: "Let's work together",
+    };
+  }
+  if (locale === 'es') {
+    return {
+      galleryLabel: 'Portfolio',
+      galleryTitle: 'Eventos destacados',
+      aboutLabel: 'Sobre mí',
+      aboutTitle: 'La hospitalidad como arte',
+      experienceLabel: 'Experiencia',
+      experienceTitle: 'Historial laboral',
+      contactLabel: 'Contacto',
+      contactTitle: 'Trabajemos juntos',
+    };
+  }
+  return {};
+}
+
 function parseLocales(checkboxValue) {
   const raw = String(checkboxValue).toLowerCase();
   const locales = [];
@@ -2171,11 +2199,12 @@ export function normalizeTallySubmission(input, options = {}) {
     experienceSummary: truncateText(experienceSummaryText, MAX_TEXT.experienceSummary),
   };
   const copyByLocale = { pl: { ...copy } };
+  const hostessName = displayName || legalName || '';
   if (locales.includes('en') || extras.englishVersion) {
-    copyByLocale.en = { ...copy };
+    copyByLocale.en = defaultCopyPlaceholders('en', hostessName);
   }
   if (locales.includes('es') || extras.spanishVersion) {
-    copyByLocale.es = { ...copy };
+    copyByLocale.es = defaultCopyPlaceholders('es', hostessName);
   }
 
   const normalized = {

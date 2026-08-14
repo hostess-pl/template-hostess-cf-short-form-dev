@@ -2,7 +2,11 @@ import type { ReactNode } from 'react'
 import { useId, useState } from 'react'
 import { AssetPicker } from '@/components/edit/AssetPicker'
 import type { CmsChromeStrings, ContentLocale, CopyFields } from '@/lib/cms/i18n'
-import { getCopyForLocale, setCopyForLocale } from '@/lib/cms/i18n'
+import {
+  getCopyFieldPlaceholder,
+  getCopyFieldsRaw,
+  setCopyForLocale,
+} from '@/lib/cms/i18n'
 import { HIDDEN_DOC_KEYS, type CmsSectionId } from '@/lib/cms/nav'
 import {
   filenameFromMediaUrl,
@@ -274,6 +278,23 @@ function patchProfile(
   return { ...doc, profile }
 }
 
+function copyEditorHelpers(
+  document: Record<string, unknown>,
+  contentLocale: ContentLocale,
+  onChange: (next: Record<string, unknown>) => void,
+) {
+  const displayName = String(
+    (document.profile as Record<string, unknown> | undefined)?.displayName || '',
+  ).trim()
+  const raw = getCopyFieldsRaw(document, contentLocale)
+  const patch = (fields: Partial<CopyFields>) => {
+    onChange(setCopyForLocale(document, contentLocale, { ...raw, ...fields }))
+  }
+  const ph = (key: keyof CopyFields, fallback: string) =>
+    getCopyFieldPlaceholder(contentLocale, key, displayName) || fallback
+  return { raw, patch, ph }
+}
+
 export function SectionEditor({
   section,
   document,
@@ -293,8 +314,7 @@ export function SectionEditor({
   )
 
   if (section === 'hero') {
-    const copy = getCopyForLocale(document, contentLocale)
-    const setCopy = (next: CopyFields) => onChange(setCopyForLocale(document, contentLocale, next))
+    const { raw, patch, ph } = copyEditorHelpers(document, contentLocale, onChange)
     const assets = (document.assets as Record<string, unknown> | undefined) || {}
     return (
       <div className="mx-auto max-w-2xl space-y-4">
@@ -314,24 +334,24 @@ export function SectionEditor({
         </Field>
         <Field label={t.fieldHeadline}>
           <TextInput
-            placeholder={t.phHeadline}
-            value={copy.headline || ''}
-            onChange={(headline) => setCopy({ ...copy, headline })}
+            placeholder={ph('headline', t.phHeadline)}
+            value={raw.headline || ''}
+            onChange={(headline) => patch({ headline })}
           />
         </Field>
         <Field label={t.fieldGreeting}>
           <TextInput
-            placeholder={t.phGreeting}
-            value={copy.greeting || ''}
-            onChange={(greeting) => setCopy({ ...copy, greeting })}
+            placeholder={ph('greeting', t.phGreeting)}
+            value={raw.greeting || ''}
+            onChange={(greeting) => patch({ greeting })}
           />
         </Field>
         <Field label={t.fieldProfileHero}>
           <TextInput
             multiline
-            placeholder={t.phProfileHero}
-            value={copy.profile || ''}
-            onChange={(profile) => setCopy({ ...copy, profile })}
+            placeholder={ph('profile', t.phProfileHero)}
+            value={raw.profile || ''}
+            onChange={(profile) => patch({ profile })}
           />
         </Field>
       </div>
@@ -339,8 +359,7 @@ export function SectionEditor({
   }
 
   if (section === 'about') {
-    const copy = getCopyForLocale(document, contentLocale)
-    const setCopy = (next: CopyFields) => onChange(setCopyForLocale(document, contentLocale, next))
+    const { raw, patch, ph } = copyEditorHelpers(document, contentLocale, onChange)
     const education = (document.education as Record<string, unknown>) || {}
     const entries = Array.isArray(education.entries) ? [...(education.entries as Record<string, unknown>[])] : []
     const languages = Array.isArray(document.languages)
@@ -365,16 +384,16 @@ export function SectionEditor({
           </h3>
           <Field label={t.fieldAboutLabel}>
             <TextInput
-              placeholder={t.phAboutLabel}
-              value={copy.aboutLabel || ''}
-              onChange={(aboutLabel) => setCopy({ ...copy, aboutLabel })}
+              placeholder={ph('aboutLabel', t.phAboutLabel)}
+              value={raw.aboutLabel || ''}
+              onChange={(aboutLabel) => patch({ aboutLabel })}
             />
           </Field>
           <Field label={t.fieldAboutTitle}>
             <TextInput
-              placeholder={t.phAboutTitle}
-              value={copy.aboutTitle || ''}
-              onChange={(aboutTitle) => setCopy({ ...copy, aboutTitle })}
+              placeholder={ph('aboutTitle', t.phAboutTitle)}
+              value={raw.aboutTitle || ''}
+              onChange={(aboutTitle) => patch({ aboutTitle })}
             />
           </Field>
         </section>
@@ -383,17 +402,17 @@ export function SectionEditor({
           <Field label={t.fieldAboutLead}>
             <TextInput
               multiline
-              placeholder={t.phAboutLead}
-              value={copy.aboutLead || ''}
-              onChange={(aboutLead) => setCopy({ ...copy, aboutLead })}
+              placeholder={ph('aboutLead', t.phAboutLead)}
+              value={raw.aboutLead || ''}
+              onChange={(aboutLead) => patch({ aboutLead })}
             />
           </Field>
           <Field label={t.fieldMainText}>
             <TextInput
               multiline
-              placeholder={t.phMainText}
-              value={copy.experienceSummary || ''}
-              onChange={(experienceSummary) => setCopy({ ...copy, experienceSummary })}
+              placeholder={ph('experienceSummary', t.phMainText)}
+              value={raw.experienceSummary || ''}
+              onChange={(experienceSummary) => patch({ experienceSummary })}
             />
           </Field>
         </section>
@@ -674,8 +693,7 @@ export function SectionEditor({
   }
 
   if (section === 'experience') {
-    const copy = getCopyForLocale(document, contentLocale)
-    const setCopy = (next: CopyFields) => onChange(setCopyForLocale(document, contentLocale, next))
+    const { raw, patch, ph } = copyEditorHelpers(document, contentLocale, onChange)
     const experience = (document.experience as Record<string, unknown>) || {}
     const employment = Array.isArray(document.employment)
       ? [...(document.employment as Record<string, unknown>[])]
@@ -695,16 +713,16 @@ export function SectionEditor({
           </h3>
           <Field label={t.fieldExperienceLabel}>
             <TextInput
-              placeholder={t.phExperienceLabel}
-              value={copy.experienceLabel || ''}
-              onChange={(experienceLabel) => setCopy({ ...copy, experienceLabel })}
+              placeholder={ph('experienceLabel', t.phExperienceLabel)}
+              value={raw.experienceLabel || ''}
+              onChange={(experienceLabel) => patch({ experienceLabel })}
             />
           </Field>
           <Field label={t.fieldExperienceTitle}>
             <TextInput
-              placeholder={t.phExperienceTitle}
-              value={copy.experienceTitle || ''}
-              onChange={(experienceTitle) => setCopy({ ...copy, experienceTitle })}
+              placeholder={ph('experienceTitle', t.phExperienceTitle)}
+              value={raw.experienceTitle || ''}
+              onChange={(experienceTitle) => patch({ experienceTitle })}
             />
           </Field>
         </section>
@@ -829,8 +847,7 @@ export function SectionEditor({
   }
 
   if (section === 'gallery') {
-    const copy = getCopyForLocale(document, contentLocale)
-    const setCopy = (next: CopyFields) => onChange(setCopyForLocale(document, contentLocale, next))
+    const { raw, patch, ph } = copyEditorHelpers(document, contentLocale, onChange)
     const events = Array.isArray(document.events)
       ? [...(document.events as Record<string, unknown>[])]
       : []
@@ -843,16 +860,16 @@ export function SectionEditor({
           </h3>
           <Field label={t.fieldGalleryLabel}>
             <TextInput
-              placeholder={t.phGalleryLabel}
-              value={copy.galleryLabel || ''}
-              onChange={(galleryLabel) => setCopy({ ...copy, galleryLabel })}
+              placeholder={ph('galleryLabel', t.phGalleryLabel)}
+              value={raw.galleryLabel || ''}
+              onChange={(galleryLabel) => patch({ galleryLabel })}
             />
           </Field>
           <Field label={t.fieldGalleryTitle}>
             <TextInput
-              placeholder={t.phGalleryTitle}
-              value={copy.galleryTitle || ''}
-              onChange={(galleryTitle) => setCopy({ ...copy, galleryTitle })}
+              placeholder={ph('galleryTitle', t.phGalleryTitle)}
+              value={raw.galleryTitle || ''}
+              onChange={(galleryTitle) => patch({ galleryTitle })}
             />
           </Field>
         </section>
@@ -1098,8 +1115,7 @@ export function SectionEditor({
   }
 
   if (section === 'contact') {
-    const copy = getCopyForLocale(document, contentLocale)
-    const setCopy = (next: CopyFields) => onChange(setCopyForLocale(document, contentLocale, next))
+    const { raw, patch, ph } = copyEditorHelpers(document, contentLocale, onChange)
     const profile = (document.profile as Record<string, unknown>) || {}
     const contactLabels = {
       email: t.fieldEmail,
@@ -1115,16 +1131,16 @@ export function SectionEditor({
           </h3>
           <Field label={t.fieldContactLabel}>
             <TextInput
-              placeholder={t.phContactLabel}
-              value={copy.contactLabel || ''}
-              onChange={(contactLabel) => setCopy({ ...copy, contactLabel })}
+              placeholder={ph('contactLabel', t.phContactLabel)}
+              value={raw.contactLabel || ''}
+              onChange={(contactLabel) => patch({ contactLabel })}
             />
           </Field>
           <Field label={t.fieldContactTitle}>
             <TextInput
-              placeholder={t.phContactTitle}
-              value={copy.contactTitle || ''}
-              onChange={(contactTitle) => setCopy({ ...copy, contactTitle })}
+              placeholder={ph('contactTitle', t.phContactTitle)}
+              value={raw.contactTitle || ''}
+              onChange={(contactTitle) => patch({ contactTitle })}
             />
           </Field>
         </section>

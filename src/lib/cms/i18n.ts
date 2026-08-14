@@ -807,6 +807,79 @@ function isEmptyCopyFields(fields: CopyFields): boolean {
   return !COPY_FIELD_KEYS.some((key) => String(fields[key] || '').trim())
 }
 
+/** True when locale bucket is missing or has no non-empty copy fields. */
+export function isCopyLocaleBucketEmpty(bucket: unknown): boolean {
+  return isEmptyCopyFields(copyFieldsFromRecord(bucket))
+}
+
+function displayNameFromDoc(doc: Record<string, unknown>): string {
+  const profile =
+    doc.profile && typeof doc.profile === 'object'
+      ? (doc.profile as Record<string, unknown>)
+      : {}
+  return String(profile.displayName || profile.legalName || '').trim()
+}
+
+/** Section labels + empty marketing fields for EN/ES starting point (not PL body copy). */
+export function defaultCopyPlaceholders(
+  locale: ContentLocale,
+  displayName = '',
+): CopyFields {
+  if (locale === 'en') {
+    return {
+      galleryLabel: 'Portfolio',
+      galleryTitle: 'Selected events',
+      aboutLabel: 'About',
+      aboutTitle: 'Hospitality as an art',
+      experienceLabel: 'Experience',
+      experienceTitle: 'Employment History',
+      contactLabel: 'Contact',
+      contactTitle: "Let's work together",
+    }
+  }
+  if (locale === 'es') {
+    return {
+      galleryLabel: 'Portfolio',
+      galleryTitle: 'Eventos destacados',
+      aboutLabel: 'Sobre mí',
+      aboutTitle: 'La hospitalidad como arte',
+      experienceLabel: 'Experiencia',
+      experienceTitle: 'Historial laboral',
+      contactLabel: 'Contacto',
+      contactTitle: 'Trabajemos juntos',
+    }
+  }
+  return {}
+}
+
+/** Input hint when a locale field is empty — not persisted until the hostess edits. */
+export function getCopyFieldPlaceholder(
+  locale: ContentLocale,
+  key: keyof CopyFields,
+  displayName = '',
+): string {
+  const fromDefaults = defaultCopyPlaceholders(locale, displayName)[key]
+  if (fromDefaults) return fromDefaults
+  const name = String(displayName || '').trim()
+  if (locale === 'en' && key === 'greeting' && name) return `Hi, I'm ${name}!`
+  if (locale === 'es' && key === 'greeting' && name) return `¡Hola, soy ${name}!`
+  if (locale === 'en' && key === 'headline') return 'A first impression that builds trust.'
+  if (locale === 'es' && key === 'headline') return 'Una primera impresión que genera confianza.'
+  return ''
+}
+
+/** Locale bucket only — no PL / flat fallback (for CMS editor saves). */
+export function getCopyFieldsRaw(
+  doc: Record<string, unknown>,
+  locale: ContentLocale,
+): CopyFields {
+  const byLocale =
+    doc.copyByLocale && typeof doc.copyByLocale === 'object'
+      ? (doc.copyByLocale as Record<string, CopyFields>)
+      : {}
+  return copyFieldsFromRecord(byLocale[locale])
+}
+
 function pickCopyField(
   doc: Record<string, unknown>,
   locale: ContentLocale,
@@ -867,18 +940,16 @@ export function migrateCopyByLocale(doc: Record<string, unknown>): {
       : {}
   const locales = Array.isArray(doc.locales) ? (doc.locales as string[]) : ['pl']
 
-  const seedFromPl = (loc: ContentLocale) => {
+  const seedLocaleIfMissing = (loc: ContentLocale) => {
     if (loc === 'pl') return
     const current = byLocale[loc] || {}
     if (!isEmptyCopyFields(current)) return
-    const source = !isEmptyCopyFields(byLocale.pl || {}) ? byLocale.pl : flat
-    if (isEmptyCopyFields(source || {})) return
-    byLocale[loc] = { ...(source as CopyFields) }
+    byLocale[loc] = { ...defaultCopyPlaceholders(loc, displayNameFromDoc(doc)) }
     changed = true
   }
 
-  if (extras.englishVersion === true || locales.includes('en')) seedFromPl('en')
-  if (extras.spanishVersion === true || locales.includes('es')) seedFromPl('es')
+  if (extras.englishVersion === true || locales.includes('en')) seedLocaleIfMissing('en')
+  if (extras.spanishVersion === true || locales.includes('es')) seedLocaleIfMissing('es')
 
   if (!changed) return { doc, changed: false }
 
@@ -900,13 +971,13 @@ export function seedCopyLocaleIfMissing(
       ? (migrated.copyByLocale as Record<string, CopyFields>)
       : {}
   if (!isEmptyCopyFields(byLocale[locale] || {})) return migrated
-  const source = !isEmptyCopyFields(byLocale.pl || {})
-    ? byLocale.pl
-    : copyFieldsFromRecord(migrated.copy)
-  if (isEmptyCopyFields(source || {})) return migrated
+  const name = displayNameFromDoc(migrated)
   return {
     ...migrated,
-    copyByLocale: { ...byLocale, [locale]: { ...(source as CopyFields) } },
+    copyByLocale: {
+      ...byLocale,
+      [locale]: { ...defaultCopyPlaceholders(locale, name) },
+    },
   }
 }
 
@@ -915,16 +986,20 @@ export function setCopyForLocale(
   locale: ContentLocale,
   next: CopyFields,
 ): Record<string, unknown> {
+  const { doc: base } = migrateCopyByLocale(doc)
   const prevBy =
-    doc.copyByLocale && typeof doc.copyByLocale === 'object'
-      ? { ...(doc.copyByLocale as Record<string, CopyFields>) }
+    base.copyByLocale && typeof base.copyByLocale === 'object'
+      ? { ...(base.copyByLocale as Record<string, CopyFields>) }
       : {}
+  const flatPl = copyFieldsFromRecord(base.copy)
+  if (isEmptyCopyFields(prevBy.pl || {}) && !isEmptyCopyFields(flatPl)) {
+    prevBy.pl = { ...flatPl }
+  }
   const updated = { ...prevBy, [locale]: next }
-  // Keep flat `copy` synced to PL (or first locale) for backward compatibility.
-  const flatSource = updated.pl ?? updated[locale] ?? next
+  const plBucket = !isEmptyCopyFields(updated.pl || {}) ? updated.pl! : flatPl
   return {
-    ...doc,
+    ...base,
     copyByLocale: updated,
-    copy: flatSource,
+    copy: plBucket,
   }
 }
