@@ -245,6 +245,7 @@ if (manifestEnv.status !== 0) {
 const buildEnv = {
   SITE_URL: productionUrl,
   REVIEW_MODE_ENABLED: 'false',
+  PORTFOLIO_PRODUCT_MODE: 'short_form',
   SUPABASE_TRACKING_ENABLED: trackingEnabled,
   PUBLIC_ANALYTICS_ENABLED: trackingEnabled,
   ANALYTICS_ENV: analyticsEnv,
@@ -280,6 +281,7 @@ if (existsSync(generatedPath)) {
     ...(generated.vars || {}),
     SITE_URL: productionUrl,
     REVIEW_MODE_ENABLED: 'false',
+    PORTFOLIO_PRODUCT_MODE: 'short_form',
     CHECK_ORIGIN: 'true',
     HOSTING_PLAN: hostingPlan,
     SUPABASE_TRACKING_ENABLED: trackingEnabled,

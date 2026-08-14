@@ -61,14 +61,23 @@ const locales = getLocales();
       </div>
 
       <div class="relative overflow-hidden border border-border bg-background-secondary">
-        <Image
-          src={heroImage}
-          alt={siteConfig.name}
-          widths={[480, 640, 800, 960]}
-          sizes="(max-width: 1024px) 100vw, 50vw"
-          class="aspect-[3/4] w-full object-cover object-top"
-          loading="eager"
-        />
+        {heroImage.kind === 'local' ? (
+          <Image
+            src={heroImage.meta}
+            alt={siteConfig.name}
+            widths={[480, 640, 800, 960]}
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            class="aspect-[3/4] w-full object-cover object-top"
+            loading="eager"
+          />
+        ) : (
+          <img
+            src={heroImage.src}
+            alt={siteConfig.name}
+            class="aspect-[3/4] w-full object-cover object-top"
+            loading="eager"
+          />
+        )}
         {locales.map((locale) => (
           <div class="absolute inset-x-0 bottom-0 border-t border-border/60 bg-background/90 px-4 py-3 backdrop-blur-sm" data-lang={locale}>
             <p class="text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-foreground">{content.hero[locale].availability}</p>

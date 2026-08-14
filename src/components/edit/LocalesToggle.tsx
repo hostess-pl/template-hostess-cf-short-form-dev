@@ -1,5 +1,5 @@
 import type { ContentLocale } from '@/lib/cms/i18n'
-import { availableContentLocales } from '@/lib/cms/i18n'
+import { availableContentLocales, seedCopyLocaleIfMissing } from '@/lib/cms/i18n'
 
 type Props = {
   document: Record<string, unknown>
@@ -28,7 +28,10 @@ export function LocalesToggle({ document, onChange, chromeLocale }: Props) {
       englishVersion: nextEn,
       spanishVersion: nextEs,
     }
-    onChange({ ...document, locales, extras })
+    let next: Record<string, unknown> = { ...document, locales, extras }
+    if (nextEn) next = seedCopyLocaleIfMissing(next, 'en')
+    if (nextEs) next = seedCopyLocaleIfMissing(next, 'es')
+    onChange(next)
   }
 
   return (

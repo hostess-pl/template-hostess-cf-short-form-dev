@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import {
   computePortfolioCompletion,
   shortFormHasBakedHeroDefault,
@@ -57,6 +58,59 @@ function MilestoneRow({
   )
 }
 
+function InsightsTeaser({
+  t,
+  isEn,
+  onOpenAnalytics,
+}: {
+  t: ReturnType<typeof chromeStrings>
+  isEn: boolean
+  onOpenAnalytics: () => void
+}) {
+  const [views, setViews] = useState<number | null>(null)
+  const [draft, setDraft] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/edit/analytics/summary')
+        const json = (await res.json()) as {
+          summary?: { page_views?: number }
+          portfolioStatus?: string
+        }
+        if (!res.ok || cancelled) return
+        setDraft(json.portfolioStatus === 'draft' || json.portfolioStatus === 'suspended')
+        setViews(json.summary?.page_views ?? 0)
+      } catch {
+        if (!cancelled) setViews(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (views === null) return null
+
+  return (
+    <button
+      type="button"
+      onClick={onOpenAnalytics}
+      className="mb-6 w-full rounded-[var(--radius-lg)] border border-[var(--cms-line)] bg-[var(--cms-bg-elevated)] p-4 text-left transition hover:border-[var(--cms-ink)]/20 hover:bg-[var(--cms-soft)]"
+    >
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--cms-muted)]">
+        {isEn ? 'Insights' : 'Statystyki'}
+      </p>
+      <p className="mt-1 font-display text-xl font-semibold text-[var(--cms-ink)]">
+        {draft && views === 0
+          ? t.insightsTeaserDraft
+          : `${views} · ${t.insightsTeaser}`}
+      </p>
+    </button>
+  )
+}
+
 export function EditDashboard({ onOpenSection, chromeLocale = 'pl', document = null }: Props) {
   const t = chromeStrings(chromeLocale)
   const blocks = getDashboardBlocks(chromeLocale)
@@ -76,6 +130,8 @@ export function EditDashboard({ onOpenSection, chromeLocale = 'pl', document = n
         </h2>
         <p className="mt-1 text-sm text-[var(--cms-muted)]">{t.dashboardHint}</p>
       </div>
+
+      <InsightsTeaser t={t} isEn={isEn} onOpenAnalytics={() => onOpenSection('analytics')} />
 
       <div className="mb-8 rounded-[var(--radius-lg)] border border-[var(--cms-line)] bg-[var(--cms-bg)] p-4 shadow-[var(--cms-shadow)] sm:p-6">
         <div className="flex items-end justify-between gap-3">

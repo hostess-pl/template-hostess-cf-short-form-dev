@@ -20,7 +20,8 @@
     "cms:invite": "node scripts/invite-cms-owner.mjs",
     "cms:login-link": "node scripts/generate-cms-login-link.mjs",
     "deploy:cms-verify": "node scripts/deploy-cms-verify.mjs",
-    "test:completion": "node --experimental-strip-types scripts/test/portfolioCompletion.test.mjs"
+    "test:completion": "node --experimental-strip-types scripts/test/portfolioCompletion.test.mjs",
+    "test:copyByLocale": "node --experimental-strip-types scripts/test/copyByLocale.test.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.0.0",

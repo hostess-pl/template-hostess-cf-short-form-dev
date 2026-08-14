@@ -25,6 +25,22 @@ function countBy(rows: EventRow[], keyFn: (r: EventRow) => string): Record<strin
   return out
 }
 
+function dailyPageViews(rows: EventRow[], days = 7): Array<{ date: string; count: number }> {
+  const pageViews = rows.filter((r) => r.event_type === 'page_view')
+  const buckets = new Map<string, number>()
+  const now = new Date()
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date(now)
+    d.setUTCDate(d.getUTCDate() - i)
+    buckets.set(d.toISOString().slice(0, 10), 0)
+  }
+  for (const row of pageViews) {
+    const day = String(row.created_at || '').slice(0, 10)
+    if (buckets.has(day)) buckets.set(day, (buckets.get(day) ?? 0) + 1)
+  }
+  return [...buckets.entries()].map(([date, count]) => ({ date, count }))
+}
+
 export const GET: APIRoute = async ({ cookies, request }) => {
   const { supabase, user } = await getSessionUser(cookies, request.headers.get('cookie') ?? undefined)
   if (!supabase || !user) return jsonError(401, 'Sign in required')
@@ -39,6 +55,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
   if (!admin) return jsonError(503, 'Database unavailable')
 
   const slug = member.site.slug
+  const portfolioStatus = member.site.portfolio_status || 'published'
   const sinceParam = new URL(request.url).searchParams.get('since')
   const since = sinceParam
     ? new Date(sinceParam)
@@ -69,6 +86,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
 
   return jsonOk({
     plan: member.site.plan,
+    portfolioStatus,
     subprojectId: slug,
     since: since.toISOString(),
     summary: {
@@ -77,6 +95,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       sessions: uniqueSessions,
       leads: leads.length,
     },
+    daily: dailyPageViews(rows, 7),
     devices: countBy(pageViews, (r) => r.device_type),
     locales: countBy(pageViews, (r) => r.locale),
     utm_sources: countBy(pageViews, (r) => r.utm_source || 'direct'),

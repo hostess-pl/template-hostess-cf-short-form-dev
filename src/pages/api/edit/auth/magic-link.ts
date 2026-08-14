@@ -1,12 +1,14 @@
 import type { APIRoute } from 'astro'
 import { createHash } from 'node:crypto'
 import { jsonError, jsonOk, isEmailSiteMember } from '@/lib/cms/access'
+import { getCmsSiteSlug } from '@/lib/cms/env'
 import { getCmsSupabaseAdmin } from '@/lib/cms/supabaseAdmin'
 
 const WINDOW_MINUTES = 1
 const MAX_PER_WINDOW = 1
 
 const COOLDOWN_MESSAGE = 'Please wait a minute before requesting another link.'
+const UNAVAILABLE_MESSAGE = 'Sign-in is temporarily unavailable. Please try again shortly.'
 const INVITE_ONLY_MESSAGE = 'This email is not invited to edit this site.'
 
 export const prerender = false
@@ -29,36 +31,40 @@ function resolveAuthSiteOrigin(request: Request): string {
   }
 }
 
-function emailHash(email: string): string {
-  return createHash('sha256').update(`cms-magic-link:${email}`).digest('hex')
+/** Per-site invite quota so ops email is not shared across all client Workers. */
+function inviteQuotaKey(email: string): string {
+  const siteSlug = getCmsSiteSlug() || 'unknown'
+  return createHash('sha256').update(`cms-magic-link:${siteSlug}:${email}`).digest('hex')
 }
 
 async function consumeInviteCheckQuota(email: string): Promise<
   | { allowed: true }
-  | { allowed: false; retryAfterSec: number }
+  | { allowed: false; reason: 'cooldown'; retryAfterSec: number }
+  | { allowed: false; reason: 'unavailable'; retryAfterSec: number }
 > {
   const admin = getCmsSupabaseAdmin()
   if (!admin) {
-    // Fail closed on invite gate when DB is unavailable for durable rate limit.
-    return { allowed: false, retryAfterSec: 60 }
+    // Fail closed when admin client is missing — do not pretend this is a cooldown.
+    return { allowed: false, reason: 'unavailable', retryAfterSec: 60 }
   }
 
   const { data, error } = await admin.rpc('api_try_consume_quota', {
     p_route: 'cms_magic_link_invite',
-    p_ip_hash: emailHash(email),
+    p_ip_hash: inviteQuotaKey(email),
     p_max: MAX_PER_WINDOW,
     p_window_minutes: WINDOW_MINUTES,
   })
 
   if (error || !data || typeof data !== 'object') {
     console.error('[magic-link] rate limit RPC error:', error?.message ?? 'empty')
-    return { allowed: false, retryAfterSec: 60 }
+    return { allowed: false, reason: 'unavailable', retryAfterSec: 60 }
   }
 
   const row = data as Record<string, unknown>
   if (row.allowed === true) return { allowed: true }
   return {
     allowed: false,
+    reason: 'cooldown',
     retryAfterSec: Number(row.retry_after_sec ?? 60),
   }
 }
@@ -80,6 +86,21 @@ export const POST: APIRoute = async ({ request }) => {
 
   const quota = await consumeInviteCheckQuota(email)
   if (!quota.allowed) {
+    if (quota.reason === 'unavailable') {
+      return new Response(
+        JSON.stringify({
+          error: UNAVAILABLE_MESSAGE,
+          retryAfterSec: quota.retryAfterSec,
+        }),
+        {
+          status: 503,
+          headers: {
+            'content-type': 'application/json; charset=utf-8',
+            'retry-after': String(quota.retryAfterSec),
+          },
+        },
+      )
+    }
     return new Response(
       JSON.stringify({
         error: COOLDOWN_MESSAGE,

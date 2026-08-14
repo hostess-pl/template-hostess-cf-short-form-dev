@@ -239,8 +239,8 @@ const trackingEnabled =
   envFlagTrue(process.env.SUPABASE_TRACKING_ENABLED || envFile.SUPABASE_TRACKING_ENABLED);
 const trackingFlag = trackingEnabled ? 'true' : 'false';
 const analyticsEnv =
-  String(process.env.ANALYTICS_ENV || (trackingEnabled ? 'preview' : previewName)).trim() ||
-  (trackingEnabled ? 'preview' : previewName);
+  String(process.env.ANALYTICS_ENV || (trackingEnabled ? 'development' : previewName)).trim() ||
+  (trackingEnabled ? 'development' : previewName);
 
 const publicSupabaseUrl =
   process.env.PUBLIC_SUPABASE_URL ||
@@ -277,6 +277,22 @@ const reviewModeEnabled = 'false';
 const portfolioProductMode = String(
   process.env.PORTFOLIO_PRODUCT_MODE || 'short_form',
 ).trim() || 'short_form';
+
+// Always regenerate letter favicon from hostess.json before build (never ship tip default "H").
+try {
+  const { resolveFaviconLetter, writeFavicon } = await import('./generate-favicon.mjs');
+  const letter = resolveFaviconLetter({
+    displayName: hostess?.profile?.displayName,
+    legalName: hostess?.profile?.legalName,
+  });
+  const favPath = writeFavicon(letter);
+  console.log(`[deploy:preview] Favicon letter=${letter} → ${favPath}`);
+} catch (err) {
+  console.warn(
+    '[deploy:preview] Favicon regenerate failed (non-fatal):',
+    err instanceof Error ? err.message : err,
+  );
+}
 
 const buildEnv = {
   SITE_URL: siteUrl,

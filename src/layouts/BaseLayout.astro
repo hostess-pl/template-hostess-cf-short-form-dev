@@ -31,8 +31,15 @@ const draftCompletion = showDraftBanner
 const draftSiteSlug = getCmsSiteSlug();
 const meta = seo[locale];
 const canonicalUrl = localeUrl(locale, siteConfig.url);
-const ogImage = await getImage({ src: heroImage, width: 1200, height: 630, format: 'jpg' });
-const ogImageUrl = new URL(ogImage.src, siteConfig.url).href;
+const ogImageUrl =
+  heroImage.kind === 'remote'
+    ? (/^https?:\/\//i.test(heroImage.src)
+        ? heroImage.src
+        : new URL(heroImage.src, siteConfig.url).href)
+    : new URL(
+        (await getImage({ src: heroImage.meta, width: 1200, height: 630, format: 'jpg' })).src,
+        siteConfig.url,
+      ).href;
 
 const sameAs = [siteConfig.instagram, siteConfig.facebook, siteConfig.linkedin, siteConfig.tiktok].filter(Boolean);
 const knowsLanguage = hostess.languages.map((lang) => lang.name);

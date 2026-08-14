@@ -1378,7 +1378,7 @@ export function discoverEventsByOrder(fields, fieldOrder) {
     }
   }
   pushCurrent();
-  return slots.slice(0, 6);
+  return slots.slice(0, 50);
 }
 
 /**
@@ -1910,7 +1910,8 @@ function buildEvents(fields, brandsFallback, map, fieldOrder = [], options = {})
       description: desc,
       date: dateRaw,
       brand: truncateText(resolvedBrand, MAX_TEXT.brands),
-      imageFile: `event-${index}.jpg`,
+      // Prefer real upload URL; event-N.jpg only as local bake fallback when no URL.
+      imageFile: image || `event-${index}.jpg`,
     });
     assets.push(image);
   };
@@ -2161,6 +2162,22 @@ export function normalizeTallySubmission(input, options = {}) {
   const isMvp = MVP_TALLY_FORM_IDS.includes(formIdNorm);
   const isLite = LITE_TALLY_FORM_IDS.includes(formIdNorm);
 
+  const locales = parseLocales(localeCheckboxRaw);
+  const copy = {
+    headline: truncateText(headlineText, MAX_TEXT.headline),
+    greeting: truncateText(greetingText, MAX_TEXT.greeting),
+    profile: truncateText(profileText, MAX_TEXT.bio),
+    aboutLead: truncateText(aboutLeadText, MAX_TEXT.aboutLead),
+    experienceSummary: truncateText(experienceSummaryText, MAX_TEXT.experienceSummary),
+  };
+  const copyByLocale = { pl: { ...copy } };
+  if (locales.includes('en') || extras.englishVersion) {
+    copyByLocale.en = { ...copy };
+  }
+  if (locales.includes('es') || extras.spanishVersion) {
+    copyByLocale.es = { ...copy };
+  }
+
   const normalized = {
     submissionId,
     slug,
@@ -2188,14 +2205,9 @@ export function normalizeTallySubmission(input, options = {}) {
         MAX_TEXT.bio,
       ),
     },
-    copy: {
-      headline: truncateText(headlineText, MAX_TEXT.headline),
-      greeting: truncateText(greetingText, MAX_TEXT.greeting),
-      profile: truncateText(profileText, MAX_TEXT.bio),
-      aboutLead: truncateText(aboutLeadText, MAX_TEXT.aboutLead),
-      experienceSummary: truncateText(experienceSummaryText, MAX_TEXT.experienceSummary),
-    },
-    locales: parseLocales(localeCheckboxRaw),
+    copy,
+    copyByLocale,
+    locales,
     languages: parseLanguages(fieldValue(fields, map.languages), fields, map).map((lang) => ({
       name: truncateText(lang.name, 80),
       level: truncateText(lang.level, 40),

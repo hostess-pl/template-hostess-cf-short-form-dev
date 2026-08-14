@@ -295,9 +295,23 @@ export function SectionEditor({
   if (section === 'hero') {
     const copy = getCopyForLocale(document, contentLocale)
     const setCopy = (next: CopyFields) => onChange(setCopyForLocale(document, contentLocale, next))
+    const assets = (document.assets as Record<string, unknown> | undefined) || {}
     return (
       <div className="mx-auto max-w-2xl space-y-4">
         {localeBar}
+        <Field label={t.fieldHeroPhoto || t.fieldPhoto}>
+          <MediaEditor
+            field="imageFile"
+            t={t}
+            value={String(assets.hero || '')}
+            onChange={(hero) =>
+              onChange({
+                ...document,
+                assets: { ...assets, hero },
+              })
+            }
+          />
+        </Field>
         <Field label={t.fieldHeadline}>
           <TextInput
             placeholder={t.phHeadline}
@@ -914,6 +928,57 @@ export function SectionEditor({
                   onChange({ ...document, events: next })
                 }}
               />
+            </Field>
+            <Field label={t.fieldExtraPhotos}>
+              <div className="space-y-3">
+                {(Array.isArray(event.imageFiles) ? event.imageFiles : []).map(
+                  (extra: string, extraIndex: number) => (
+                    <div key={`extra-${index}-${extraIndex}`} className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <MediaEditor
+                          field="imageFile"
+                          t={t}
+                          value={String(extra || '')}
+                          onChange={(value) => {
+                            const extras = [...(Array.isArray(event.imageFiles) ? event.imageFiles : [])]
+                            extras[extraIndex] = value
+                            const next = [...events]
+                            next[index] = { ...event, imageFiles: extras.filter(Boolean) }
+                            onChange({ ...document, events: next })
+                          }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="cms-btn cms-btn-ghost shrink-0"
+                        onClick={() => {
+                          const extras = [...(Array.isArray(event.imageFiles) ? event.imageFiles : [])]
+                          extras.splice(extraIndex, 1)
+                          const next = [...events]
+                          next[index] = { ...event, imageFiles: extras }
+                          onChange({ ...document, events: next })
+                        }}
+                      >
+                        {t.remove}
+                      </button>
+                    </div>
+                  ),
+                )}
+                {(Array.isArray(event.imageFiles) ? event.imageFiles : []).length < 8 ? (
+                  <button
+                    type="button"
+                    className="cms-btn cms-btn-ghost"
+                    onClick={() => {
+                      const extras = [...(Array.isArray(event.imageFiles) ? event.imageFiles : []), '']
+                      const next = [...events]
+                      next[index] = { ...event, imageFiles: extras }
+                      onChange({ ...document, events: next })
+                    }}
+                  >
+                    {t.fieldAddExtraPhoto}
+                  </button>
+                ) : null}
+              </div>
             </Field>
             <Field label={t.fieldVideoOptional}>
               <MediaEditor

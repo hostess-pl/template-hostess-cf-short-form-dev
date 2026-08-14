@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro'
 import { getSessionUser } from '@/lib/supabaseAuth'
 import { jsonError, jsonOk, requireCmsProMember, saveDocument } from '@/lib/cms/access'
 import { getCmsSupabaseAdmin } from '@/lib/cms/supabaseAdmin'
+import { migrateCopyByLocale } from '@/lib/cms/i18n'
 
 export const prerender = false
 
@@ -12,6 +13,24 @@ async function loadFallbackDocument(): Promise<Record<string, unknown>> {
   } catch {
     return {}
   }
+}
+
+/** Ensure short-form provisioned hero is visible to the completion wizard. */
+function normalizeDocumentAssets(doc: Record<string, unknown>): Record<string, unknown> {
+  const assets =
+    doc.assets && typeof doc.assets === 'object' && !Array.isArray(doc.assets)
+      ? { ...(doc.assets as Record<string, unknown>) }
+      : {}
+  if (!String(assets.hero || '').trim()) {
+    assets.hero = 'hero.jpg'
+  }
+  return { ...doc, assets }
+}
+
+function prepareDocument(doc: Record<string, unknown>): Record<string, unknown> {
+  const withAssets = normalizeDocumentAssets(doc)
+  const { doc: migrated } = migrateCopyByLocale(withAssets)
+  return migrated
 }
 
 export const GET: APIRoute = async ({ cookies, request }) => {
@@ -32,23 +51,16 @@ export const GET: APIRoute = async ({ cookies, request }) => {
     .maybeSingle()
 
   if (data?.data && typeof data.data === 'object') {
-    return jsonOk({ data: normalizeDocumentAssets(data.data as Record<string, unknown>) })
+    const raw = data.data as Record<string, unknown>
+    const { doc: migrated, changed } = migrateCopyByLocale(normalizeDocumentAssets(raw))
+    if (changed) {
+      await saveDocument(member.site, user.id, migrated)
+    }
+    return jsonOk({ data: migrated })
   }
 
-  const fallback = await loadFallbackDocument()
-  return jsonOk({ data: normalizeDocumentAssets(fallback) })
-}
-
-/** Ensure short-form provisioned hero is visible to the completion wizard. */
-function normalizeDocumentAssets(doc: Record<string, unknown>): Record<string, unknown> {
-  const assets =
-    doc.assets && typeof doc.assets === 'object' && !Array.isArray(doc.assets)
-      ? { ...(doc.assets as Record<string, unknown>) }
-      : {}
-  if (!String(assets.hero || '').trim()) {
-    assets.hero = 'hero.jpg'
-  }
-  return { ...doc, assets }
+  const fallback = prepareDocument(await loadFallbackDocument())
+  return jsonOk({ data: fallback })
 }
 
 export const PUT: APIRoute = async ({ cookies, request }) => {
@@ -64,5 +76,6 @@ export const PUT: APIRoute = async ({ cookies, request }) => {
     return jsonError(400, 'Invalid JSON')
   }
   if (!body.data || typeof body.data !== 'object') return jsonError(400, 'Missing data')
-  return saveDocument(member.site, user.id, body.data)
+  const { doc: migrated } = migrateCopyByLocale(body.data as Record<string, unknown>)
+  return saveDocument(member.site, user.id, migrated)
 }

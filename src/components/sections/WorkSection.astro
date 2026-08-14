@@ -10,13 +10,20 @@ function isLowCropEvent(event: { id: string; title: Record<string, string> }): b
 
 const galleryItems = await Promise.all(
   galleryEvents.map(async (event) => {
-    const src =
-      event.image.kind === 'remote'
-        ? event.image.src
-        : (await getImage({ src: event.image.meta, width: 1400, height: 1050, format: 'webp' })).src;
+    const imageList = Array.isArray(event.images) && event.images.length > 0
+      ? event.images
+      : [event.image];
+    const srcs = await Promise.all(
+      imageList.map(async (img) =>
+        img.kind === 'remote'
+          ? img.src
+          : (await getImage({ src: img.meta, width: 1400, height: 1050, format: 'webp' })).src,
+      ),
+    );
     return {
       id: event.id,
-      src,
+      src: srcs[0] || '',
+      images: srcs.filter(Boolean),
       video: event.video ?? null,
       lowCrop: isLowCropEvent(event),
       date: event.date,
@@ -257,6 +264,16 @@ const galleryItems = await Promise.all(
       return Boolean(item?.video);
     }
 
+    function photoCount(item) {
+      const list = Array.isArray(item?.images) ? item.images.filter(Boolean) : [];
+      if (list.length) return list.length;
+      return item?.src ? 1 : 0;
+    }
+
+    function slideCount(item) {
+      return photoCount(item) + (hasVideo(item) ? 1 : 0);
+    }
+
     function pauseVideo() {
       videoEl.pause();
       videoEl.currentTime = 0;
@@ -267,32 +284,39 @@ const galleryItems = await Promise.all(
     function updateSlideUI() {
       const locale = getLocale();
       const labels = slideLabels[locale];
-      const itemHasVideo = hasVideo(activeItem);
+      const photos = photoCount(activeItem);
+      const total = slideCount(activeItem);
+      const multi = total > 1;
 
-      prevBtn.classList.toggle('hidden', !itemHasVideo);
-      nextBtn.classList.toggle('hidden', !itemHasVideo);
-      slideLabel.classList.toggle('hidden', !itemHasVideo);
+      prevBtn.classList.toggle('hidden', !multi);
+      nextBtn.classList.toggle('hidden', !multi);
+      slideLabel.classList.toggle('hidden', !multi);
 
-      if (!itemHasVideo) {
+      if (activeSlide < photos) {
+        const src =
+          (Array.isArray(activeItem.images) && activeItem.images[activeSlide]) ||
+          activeItem.src ||
+          '';
+        imageEl.src = src;
+        imageEl.alt = activeItem.alt[locale] || '';
         imageEl.classList.remove('hidden');
         videoEl.classList.add('hidden');
         pauseVideo();
+        if (multi) {
+          slideLabel.textContent = `${labels.photo} ${activeSlide + 1} ${labels.of} ${total}`;
+        }
         return;
       }
 
-      if (activeSlide === 0) {
-        imageEl.classList.remove('hidden');
-        videoEl.classList.add('hidden');
-        pauseVideo();
-        slideLabel.textContent = `${labels.photo} 1 ${labels.of} 2`;
-      } else {
-        imageEl.classList.add('hidden');
-        videoEl.classList.remove('hidden');
-        if (videoEl.getAttribute('src') !== activeItem.video) {
-          videoEl.src = activeItem.video;
-          videoEl.load();
-        }
-        slideLabel.textContent = `${labels.video} 2 ${labels.of} 2`;
+      // Video is the last slide when present.
+      imageEl.classList.add('hidden');
+      videoEl.classList.remove('hidden');
+      if (videoEl.getAttribute('src') !== activeItem.video) {
+        videoEl.src = activeItem.video;
+        videoEl.load();
+      }
+      if (multi) {
+        slideLabel.textContent = `${labels.video} ${activeSlide + 1} ${labels.of} ${total}`;
       }
     }
 
@@ -304,7 +328,7 @@ const galleryItems = await Promise.all(
       activeSlide = 0;
 
       const locale = getLocale();
-      imageEl.src = item.src;
+      imageEl.src = (Array.isArray(item.images) && item.images[0]) || item.src || '';
       imageEl.alt = item.alt[locale];
       imageEl.classList.toggle('object-[center_42%]', Boolean(item.lowCrop));
       imageEl.classList.toggle('object-center', !item.lowCrop);
@@ -336,19 +360,18 @@ const galleryItems = await Promise.all(
     }
 
     function goToSlide(index) {
-      if (!hasVideo(activeItem)) return;
-      activeSlide = index === 0 ? 0 : 1;
+      const total = slideCount(activeItem);
+      if (total <= 1) return;
+      activeSlide = ((index % total) + total) % total;
       updateSlideUI();
     }
 
     function goNext() {
-      if (!hasVideo(activeItem)) return;
-      goToSlide(activeSlide === 0 ? 1 : 0);
+      goToSlide(activeSlide + 1);
     }
 
     function goPrev() {
-      if (!hasVideo(activeItem)) return;
-      goToSlide(activeSlide === 0 ? 1 : 0);
+      goToSlide(activeSlide - 1);
     }
 
     document.querySelectorAll('.gallery-card').forEach((card) => {
@@ -373,7 +396,7 @@ const galleryItems = await Promise.all(
     }, { passive: true });
 
     mediaEl.addEventListener('touchend', (e) => {
-      if (!hasVideo(activeItem)) return;
+      if (slideCount(activeItem) <= 1) return;
       const touchEndX = e.changedTouches[0]?.clientX ?? 0;
       const delta = touchEndX - touchStartX;
       if (Math.abs(delta) < 40) return;

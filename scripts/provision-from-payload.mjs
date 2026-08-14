@@ -404,6 +404,11 @@ function collectReferencedMediaBasenames(hostess) {
       const value = String(event?.[key] || '').trim();
       if (value) refs.add(basename(value));
     }
+    // Keep local bake companions when CMS/image identity is a remote URL.
+    const idMatch = String(event?.id || '').match(/^event-(\d+)$/);
+    if (idMatch && /^https?:\/\//i.test(String(event?.imageFile || ''))) {
+      refs.add(`event-${idMatch[1]}.jpg`);
+    }
   }
   return refs;
 }
@@ -482,8 +487,11 @@ async function main() {
 
   sanitizeEmployment(hostessOnly);
   const validated = await validateHostessWithZod(hostessOnly);
-  // Stamp after Zod (schema strips unknown keys) so CMS completion sees the form hero.
-  validated.assets = { ...(validated.assets || {}), hero: 'hero.jpg' };
+  // Persist real hero URL when present; otherwise bake basename for static fallback.
+  // Favicon remains the only hard-coded asset name (writeHostessFavicon).
+  const heroSource = typeof assets?.hero === 'string' ? assets.hero.trim() : '';
+  const heroPersisted = /^https?:\/\//i.test(heroSource) ? heroSource : 'hero.jpg';
+  validated.assets = { ...(validated.assets || {}), hero: heroPersisted };
 
   await writeFile(hostessJsonPath, `${JSON.stringify(validated, null, 2)}\n`);
   console.log(`[provision] Wrote ${hostessJsonPath}`);

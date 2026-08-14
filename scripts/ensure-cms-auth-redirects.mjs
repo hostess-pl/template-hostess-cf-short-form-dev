@@ -188,9 +188,12 @@ export async function ensureCmsAuthRedirects(options = {}) {
     };
   }
 
+  // Prefer the Supabase URL actually used by this deploy (Prod vs Test), not a hard-coded Test default.
   const ref =
-    String(env.SUPABASE_PROJECT_REF || env.WF_SUPABASE_PROJECT_REF_HOSTESSWEBS_TEST || '').trim() ||
-    projectRefFromUrl(env.WF_SUPABASE_URL_HOSTESSWEBS_TEST || env.SUPABASE_URL || '') ||
+    String(env.SUPABASE_PROJECT_REF || '').trim() ||
+    projectRefFromUrl(env.PUBLIC_SUPABASE_URL || env.SUPABASE_URL || '') ||
+    projectRefFromUrl(env.WF_SUPABASE_URL_HOSTESSWEBS_PROD || '') ||
+    projectRefFromUrl(env.WF_SUPABASE_URL_HOSTESSWEBS_TEST || '') ||
     DEFAULT_REF;
 
   const siteUrl = String(env.AUTH_SITE_URL || DEFAULT_SITE_URL).trim() || DEFAULT_SITE_URL;

@@ -115,6 +115,12 @@ export type CmsChromeStrings = {
   device: string
   source: string
   direct: string
+  analyticsDraftTitle: string
+  analyticsDraftHint: string
+  analyticsDailyTitle: string
+  pages: string
+  insightsTeaser: string
+  insightsTeaserDraft: string
   // Assets
   assetsTitle: string
   assetsLede: string
@@ -174,6 +180,9 @@ export type CmsChromeStrings = {
   fieldDate: string
   fieldBrand: string
   fieldPhoto: string
+  fieldHeroPhoto: string
+  fieldExtraPhotos: string
+  fieldAddExtraPhoto: string
   fieldVideoOptional: string
   fieldDisplayName: string
   fieldLegalName: string
@@ -347,6 +356,12 @@ const PL: CmsChromeStrings = {
   device: 'Urządzenie',
   source: 'Źródło',
   direct: 'bezpośredni',
+  analyticsDraftTitle: 'Analityka startuje po publikacji',
+  analyticsDraftHint: 'Opublikuj portfolio, aby zbierać odwiedziny i zapytania z formularza kontaktowego.',
+  analyticsDailyTitle: 'Ostatnie 7 dni',
+  pages: 'Strony',
+  insightsTeaser: 'Wyświetlenia (30 dni)',
+  insightsTeaserDraft: 'Analityka włączy się po publikacji portfolio.',
   assetsTitle: 'Pliki',
   assetsLede: 'Zdjęcia i filmy tej strony. Wybieraj je przy edycji pól.',
   upload: 'Prześlij',
@@ -404,6 +419,9 @@ const PL: CmsChromeStrings = {
   fieldDate: 'Data',
   fieldBrand: 'Marka',
   fieldPhoto: 'Zdjęcie',
+  fieldHeroPhoto: 'Zdjęcie główne (hero)',
+  fieldExtraPhotos: 'Dodatkowe zdjęcia (slider)',
+  fieldAddExtraPhoto: 'Dodaj zdjęcie do wydarzenia',
   fieldVideoOptional: 'Film (opcjonalnie)',
   fieldDisplayName: 'Nazwa wyświetlana',
   fieldLegalName: 'Imię i nazwisko',
@@ -576,6 +594,12 @@ const EN: CmsChromeStrings = {
   device: 'Device',
   source: 'Source',
   direct: 'direct',
+  analyticsDraftTitle: 'Analytics start after publish',
+  analyticsDraftHint: 'Publish your portfolio to start collecting visits and contact leads.',
+  analyticsDailyTitle: 'Last 7 days',
+  pages: 'Pages',
+  insightsTeaser: 'Views (30 days)',
+  insightsTeaserDraft: 'Analytics turn on after you publish your portfolio.',
   assetsTitle: 'Assets',
   assetsLede: 'Images and videos for this site. Pick from here when editing fields.',
   upload: 'Upload',
@@ -633,6 +657,9 @@ const EN: CmsChromeStrings = {
   fieldDate: 'Date',
   fieldBrand: 'Brand',
   fieldPhoto: 'Photo',
+  fieldHeroPhoto: 'Hero photo',
+  fieldExtraPhotos: 'Extra photos (slider)',
+  fieldAddExtraPhoto: 'Add photo to event',
   fieldVideoOptional: 'Video (optional)',
   fieldDisplayName: 'Display name',
   fieldLegalName: 'Legal name',
@@ -749,19 +776,138 @@ export type CopyFields = {
   contactTitle?: string
 }
 
+const COPY_FIELD_KEYS = [
+  'headline',
+  'greeting',
+  'profile',
+  'aboutLead',
+  'experienceSummary',
+  'galleryLabel',
+  'galleryTitle',
+  'aboutLabel',
+  'aboutTitle',
+  'experienceLabel',
+  'experienceTitle',
+  'contactLabel',
+  'contactTitle',
+] as const satisfies readonly (keyof CopyFields)[]
+
+function copyFieldsFromRecord(source: unknown): CopyFields {
+  if (!source || typeof source !== 'object') return {}
+  const row = source as Record<string, unknown>
+  const out: CopyFields = {}
+  for (const key of COPY_FIELD_KEYS) {
+    const v = row[key]
+    if (v != null && String(v).trim()) out[key] = String(v)
+  }
+  return out
+}
+
+function isEmptyCopyFields(fields: CopyFields): boolean {
+  return !COPY_FIELD_KEYS.some((key) => String(fields[key] || '').trim())
+}
+
+function pickCopyField(
+  doc: Record<string, unknown>,
+  locale: ContentLocale,
+  key: keyof CopyFields,
+): string {
+  const byLocale =
+    doc.copyByLocale && typeof doc.copyByLocale === 'object'
+      ? (doc.copyByLocale as Record<string, CopyFields>)
+      : {}
+  const flat =
+    doc.copy && typeof doc.copy === 'object' ? (doc.copy as CopyFields) : {}
+  const fromLocale = byLocale[locale]?.[key]
+  const fromPl = byLocale.pl?.[key]
+  const fromFlat = flat[key]
+  return String(fromLocale || fromPl || fromFlat || '').trim()
+}
+
 export function getCopyForLocale(
   doc: Record<string, unknown>,
   locale: ContentLocale,
 ): CopyFields {
-  const byLocale = doc.copyByLocale
-  if (byLocale && typeof byLocale === 'object') {
-    const map = byLocale as Record<string, CopyFields>
-    if (map[locale] && typeof map[locale] === 'object') return { ...map[locale] }
-    if (map.pl && typeof map.pl === 'object') return { ...map.pl }
+  const out: CopyFields = {}
+  for (const key of COPY_FIELD_KEYS) {
+    const value = pickCopyField(doc, locale, key)
+    if (value) out[key] = value
   }
-  const flat = doc.copy
-  if (flat && typeof flat === 'object') return { ...(flat as CopyFields) }
-  return {}
+  return out
+}
+
+/**
+ * Backfill copyByLocale from flat copy and seed EN/ES from PL when enabled.
+ * Returns migrated doc + whether persistence is needed.
+ */
+export function migrateCopyByLocale(doc: Record<string, unknown>): {
+  doc: Record<string, unknown>
+  changed: boolean
+} {
+  const flat = copyFieldsFromRecord(doc.copy)
+  let byLocale =
+    doc.copyByLocale && typeof doc.copyByLocale === 'object'
+      ? Object.fromEntries(
+          Object.entries(doc.copyByLocale as Record<string, unknown>).map(([k, v]) => [
+            k,
+            copyFieldsFromRecord(v),
+          ]),
+        ) as Record<string, CopyFields>
+      : {}
+  let changed = false
+
+  if (!isEmptyCopyFields(flat) && isEmptyCopyFields(byLocale.pl || {})) {
+    byLocale.pl = { ...flat }
+    changed = true
+  }
+
+  const extras =
+    doc.extras && typeof doc.extras === 'object'
+      ? (doc.extras as Record<string, unknown>)
+      : {}
+  const locales = Array.isArray(doc.locales) ? (doc.locales as string[]) : ['pl']
+
+  const seedFromPl = (loc: ContentLocale) => {
+    if (loc === 'pl') return
+    const current = byLocale[loc] || {}
+    if (!isEmptyCopyFields(current)) return
+    const source = !isEmptyCopyFields(byLocale.pl || {}) ? byLocale.pl : flat
+    if (isEmptyCopyFields(source || {})) return
+    byLocale[loc] = { ...(source as CopyFields) }
+    changed = true
+  }
+
+  if (extras.englishVersion === true || locales.includes('en')) seedFromPl('en')
+  if (extras.spanishVersion === true || locales.includes('es')) seedFromPl('es')
+
+  if (!changed) return { doc, changed: false }
+
+  const next = { ...doc, copyByLocale: byLocale }
+  if (!isEmptyCopyFields(byLocale.pl || {})) {
+    next.copy = byLocale.pl
+  }
+  return { doc: next, changed: true }
+}
+
+export function seedCopyLocaleIfMissing(
+  doc: Record<string, unknown>,
+  locale: ContentLocale,
+): Record<string, unknown> {
+  if (locale === 'pl') return doc
+  const { doc: migrated } = migrateCopyByLocale(doc)
+  const byLocale =
+    migrated.copyByLocale && typeof migrated.copyByLocale === 'object'
+      ? (migrated.copyByLocale as Record<string, CopyFields>)
+      : {}
+  if (!isEmptyCopyFields(byLocale[locale] || {})) return migrated
+  const source = !isEmptyCopyFields(byLocale.pl || {})
+    ? byLocale.pl
+    : copyFieldsFromRecord(migrated.copy)
+  if (isEmptyCopyFields(source || {})) return migrated
+  return {
+    ...migrated,
+    copyByLocale: { ...byLocale, [locale]: { ...(source as CopyFields) } },
+  }
 }
 
 export function setCopyForLocale(

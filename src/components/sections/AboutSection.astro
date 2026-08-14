@@ -32,14 +32,23 @@ const strengthsLabel: Record<(typeof locales)[number], string> = {
   <div class="container section-split">
     <div>
       <div class="overflow-hidden">
-        <Image
-          src={heroImage}
-          alt={siteConfig.name}
-          widths={[480, 640, 800]}
-          sizes="(max-width: 1024px) 100vw, 50vw"
-          class="aspect-[4/5] w-full object-cover"
-          loading="lazy"
-        />
+        {heroImage.kind === 'local' ? (
+          <Image
+            src={heroImage.meta}
+            alt={siteConfig.name}
+            widths={[480, 640, 800]}
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            class="aspect-[4/5] w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <img
+            src={heroImage.src}
+            alt={siteConfig.name}
+            class="aspect-[4/5] w-full object-cover"
+            loading="lazy"
+          />
+        )}
       </div>
 
       <div class="mt-4 flex flex-wrap items-center gap-4">

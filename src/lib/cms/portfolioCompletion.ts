@@ -144,7 +144,7 @@ export function computePortfolioCompletion(
       id: 'hero',
       weight: 12,
       done: hasHero,
-      sectionId: 'assets',
+      sectionId: 'hero',
       labelPl: 'Zdjęcie główne',
       labelEn: 'Hero photo',
       tier: 'core',

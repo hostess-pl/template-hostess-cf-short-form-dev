@@ -25,6 +25,9 @@ export type EventImage =
   | { kind: 'local'; meta: ImageMetadata }
   | { kind: 'remote'; src: string };
 
+/** Same shape as EventImage — hero may come from CMS assets.hero (URL) or bake. */
+export type HeroImage = EventImage;
+
 function resolveEventImage(value: string): EventImage {
   const raw = String(value || '').trim();
   if (!raw) {
@@ -36,6 +39,18 @@ function resolveEventImage(value: string): EventImage {
   const match = Object.entries(imageModules).find(([path]) => path.endsWith(`/${raw}`));
   if (match) return { kind: 'local', meta: match[1].default };
   return { kind: 'remote', src: `/cms-assets/${raw.replace(/^\/+/, '')}` };
+}
+
+/** Prefer CMS/hostess assets.hero; fall back to baked hero.jpg. */
+function resolveHeroImage(hostess: ReturnType<typeof loadHostess>): HeroImage {
+  const raw = String((hostess as { assets?: { hero?: string } })?.assets?.hero || '').trim();
+  if (raw && raw !== 'hero.jpg') {
+    return resolveEventImage(raw);
+  }
+  if (raw === 'hero.jpg') {
+    return { kind: 'local', meta: resolveImage('hero.jpg') };
+  }
+  return { kind: 'local', meta: resolveImage('hero.jpg') };
 }
 
 
@@ -51,6 +66,8 @@ export interface AppearanceFact {
 export interface FeaturedEvent {
   id: string;
   image: EventImage;
+  /** Cover + extras for lightbox (image is always images[0]). */
+  images: EventImage[];
   video?: string | null;
   date: string;
   title: Record<Locale, string>;
@@ -389,29 +406,44 @@ function buildContentBundle() {
     es: professionalStatus ? 'Estado' : 'Cobertura',
   };
 
+  const GALLERY_DISPLAY_MAX = 7
   const galleryEvents: FeaturedEvent[] = [...hostess.events]
+    .filter((event) => {
+      const ref = String(event.imageFile || '').trim()
+      // Hide empty / unfilled cards; keep bake basenames and remote URLs that have a value.
+      return Boolean(ref)
+    })
     .sort((a, b) => eventSortKey(b.date).localeCompare(eventSortKey(a.date)))
-    .map((event) => ({
-    id: event.id,
-    image: resolveEventImage(event.imageFile),
-    video: event.videoFile ? `/videos/${event.videoFile}` : null,
-    date: eventYear(event.date),
-    title: {
-      en: localizeText(event.title, 'en'),
-      pl: localizeText(event.title, 'pl'),
-      es: localizeText(event.title, 'es'),
-    },
-    description: {
-      en: localizeText(event.description, 'en'),
-      pl: localizeText(event.description, 'pl'),
-      es: localizeText(event.description, 'es'),
-    },
-    alt: {
-      en: event.title ? `${displayName} at ${event.title}` : `${displayName} portfolio`,
-      pl: event.title ? `${displayName} — ${event.title}` : `${displayName} — portfolio`,
-      es: event.title ? `${displayName} — ${event.title}` : `${displayName} — portfolio`,
-    },
-  }));
+    .slice(0, GALLERY_DISPLAY_MAX)
+    .map((event) => {
+      const cover = resolveEventImage(event.imageFile)
+      const extras = (Array.isArray(event.imageFiles) ? event.imageFiles : [])
+        .map((ref) => String(ref || '').trim())
+        .filter(Boolean)
+        .map((ref) => resolveEventImage(ref))
+      return {
+        id: event.id,
+        image: cover,
+        images: [cover, ...extras],
+        video: event.videoFile ? `/videos/${event.videoFile}` : null,
+        date: eventYear(event.date),
+        title: {
+          en: localizeText(event.title, 'en'),
+          pl: localizeText(event.title, 'pl'),
+          es: localizeText(event.title, 'es'),
+        },
+        description: {
+          en: localizeText(event.description, 'en'),
+          pl: localizeText(event.description, 'pl'),
+          es: localizeText(event.description, 'es'),
+        },
+        alt: {
+          en: event.title ? `${displayName} at ${event.title}` : `${displayName} portfolio`,
+          pl: event.title ? `${displayName} — ${event.title}` : `${displayName} — portfolio`,
+          es: event.title ? `${displayName} — ${event.title}` : `${displayName} — portfolio`,
+        },
+      }
+    });
 
   const content: PortfolioContent = {
     nav: {
@@ -713,7 +745,8 @@ function buildContentBundle() {
       },
     }));
 
-  const heroImage = resolveImage('hero.jpg');
+  const hostessForHero = loadHostess();
+  const heroImage = resolveHeroImage(hostessForHero);
   return { appearanceFacts, showStrengthsSection, galleryEvents, content, showExperienceSection, backgroundEntries, heroImage };
 }
 
