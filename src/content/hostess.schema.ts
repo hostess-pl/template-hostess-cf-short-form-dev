@@ -190,6 +190,20 @@ export const hostessSchema = z.object({
       level: z.string().min(1).max(40),
     }),
   ),
+  languagesByLocale: z
+    .object({
+      pl: z.array(z.object({ name: z.string().max(80).default(''), level: z.string().max(40).default('') })).optional(),
+      en: z.array(z.object({ name: z.string().max(80).default(''), level: z.string().max(40).default('') })).optional(),
+      es: z.array(z.object({ name: z.string().max(80).default(''), level: z.string().max(40).default('') })).optional(),
+    })
+    .optional(),
+  appearanceTextByLocale: z
+    .object({
+      pl: z.object({ hairColor: z.string().max(80).optional().default(''), eyeColor: z.string().max(80).optional().default('') }).optional(),
+      en: z.object({ hairColor: z.string().max(80).optional().default(''), eyeColor: z.string().max(80).optional().default('') }).optional(),
+      es: z.object({ hairColor: z.string().max(80).optional().default(''), eyeColor: z.string().max(80).optional().default('') }).optional(),
+    })
+    .optional(),
   languageCompetencies: z.array(z.string().min(1).max(120)).default([]),
   skills: z.array(z.string().min(1).max(120)).default([]),
   traits: z.array(z.string().min(1).max(120)).default([]),

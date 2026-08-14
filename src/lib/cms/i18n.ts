@@ -998,13 +998,15 @@ export function migrateCopyByLocale(doc: Record<string, unknown>): {
   if (extras.englishVersion === true || locales.includes('en')) seedLocaleIfMissing('en')
   if (extras.spanishVersion === true || locales.includes('es')) seedLocaleIfMissing('es')
 
-  if (!changed) return { doc, changed: false }
-
-  const next: Record<string, unknown> = { ...doc, copyByLocale: byLocale }
-  if (!isEmptyCopyFields(byLocale.pl || {})) {
-    next.copy = byLocale.pl
+  const copyNext: Record<string, unknown> = changed ? { ...doc, copyByLocale: byLocale } : doc
+  if (changed && !isEmptyCopyFields(byLocale.pl || {})) {
+    copyNext.copy = byLocale.pl
   }
-  return { doc: next, changed: true }
+  const facts = migrateLocaleFacts(copyNext)
+  return {
+    doc: facts.doc,
+    changed: changed || facts.changed,
+  }
 }
 
 export function seedCopyLocaleIfMissing(
@@ -1048,5 +1050,168 @@ export function setCopyForLocale(
     ...base,
     copyByLocale: updated,
     copy: plBucket,
+  }
+}
+
+export type LanguageRow = { name: string; level: string }
+export type AppearanceText = { hairColor: string; eyeColor: string }
+
+function parseLanguageRows(value: unknown): LanguageRow[] {
+  if (!Array.isArray(value)) return []
+  return value.map((row) => {
+    const r = row && typeof row === 'object' ? (row as Record<string, unknown>) : {}
+    return {
+      name: String(r.name || '').trim(),
+      level: String(r.level || '').trim(),
+    }
+  })
+}
+
+function parseAppearanceText(value: unknown): AppearanceText {
+  const r = value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
+  return {
+    hairColor: String(r.hairColor || '').trim(),
+    eyeColor: String(r.eyeColor || '').trim(),
+  }
+}
+
+function localeBucketMap(source: unknown): Record<string, unknown> {
+  return source && typeof source === 'object' && !Array.isArray(source)
+    ? { ...(source as Record<string, unknown>) }
+    : {}
+}
+
+function localeEnabled(doc: Record<string, unknown>, locale: ContentLocale): boolean {
+  if (locale === 'pl') return true
+  const extras =
+    doc.extras && typeof doc.extras === 'object' ? (doc.extras as Record<string, unknown>) : {}
+  const locales = Array.isArray(doc.locales) ? (doc.locales as string[]) : ['pl']
+  if (locale === 'en') return extras.englishVersion === true || locales.includes('en')
+  if (locale === 'es') return extras.spanishVersion === true || locales.includes('es')
+  return false
+}
+
+/** CMS editor: locale bucket only. EN/ES never show PL language names. */
+export function getLanguagesRaw(
+  doc: Record<string, unknown>,
+  locale: ContentLocale,
+): LanguageRow[] {
+  const by = localeBucketMap(doc.languagesByLocale)
+  if (locale !== 'pl') return parseLanguageRows(by[locale])
+  const fromBucket = parseLanguageRows(by.pl)
+  if (fromBucket.length) return fromBucket
+  return parseLanguageRows(doc.languages)
+}
+
+/** Public site: EN/ES never fall back to PL language names. */
+export function languagesForPublic(
+  doc: Record<string, unknown>,
+  locale: ContentLocale,
+): LanguageRow[] {
+  const by = localeBucketMap(doc.languagesByLocale)
+  const localRows = parseLanguageRows(by[locale]).filter((row) => row.name)
+  if (localRows.length) return localRows
+  if (locale !== 'pl') return []
+  return parseLanguageRows(doc.languages).filter((row) => row.name)
+}
+
+/** CMS editor: locale bucket only. EN/ES never show PL hair/eyes. */
+export function getAppearanceTextRaw(
+  doc: Record<string, unknown>,
+  locale: ContentLocale,
+): AppearanceText {
+  const by = localeBucketMap(doc.appearanceTextByLocale)
+  if (locale !== 'pl') return parseAppearanceText(by[locale])
+  const fromBucket = parseAppearanceText(by.pl)
+  if (fromBucket.hairColor || fromBucket.eyeColor) return fromBucket
+  return parseAppearanceText(doc.appearance)
+}
+
+/** Public site: EN/ES never fall back to PL hair/eyes. Height/dress stay on appearance. */
+export function appearanceTextForPublic(
+  doc: Record<string, unknown>,
+  locale: ContentLocale,
+): AppearanceText {
+  const by = localeBucketMap(doc.appearanceTextByLocale)
+  const local = parseAppearanceText(by[locale])
+  if (local.hairColor || local.eyeColor) return local
+  if (locale !== 'pl') return { hairColor: '', eyeColor: '' }
+  const fromPl = parseAppearanceText(by.pl)
+  if (fromPl.hairColor || fromPl.eyeColor) return fromPl
+  return parseAppearanceText(doc.appearance)
+}
+
+export function setLanguagesForLocale(
+  doc: Record<string, unknown>,
+  locale: ContentLocale,
+  rows: LanguageRow[],
+): Record<string, unknown> {
+  const by = localeBucketMap(doc.languagesByLocale)
+  const next: Record<string, unknown> = {
+    ...doc,
+    languagesByLocale: { ...by, [locale]: rows },
+  }
+  if (locale === 'pl') next.languages = rows
+  return next
+}
+
+export function setAppearanceTextForLocale(
+  doc: Record<string, unknown>,
+  locale: ContentLocale,
+  text: AppearanceText,
+): Record<string, unknown> {
+  const by = localeBucketMap(doc.appearanceTextByLocale)
+  const appearance =
+    doc.appearance && typeof doc.appearance === 'object'
+      ? { ...(doc.appearance as Record<string, unknown>) }
+      : {}
+  const next: Record<string, unknown> = {
+    ...doc,
+    appearanceTextByLocale: {
+      ...by,
+      [locale]: { hairColor: text.hairColor, eyeColor: text.eyeColor },
+    },
+  }
+  if (locale === 'pl') {
+    next.appearance = { ...appearance, hairColor: text.hairColor, eyeColor: text.eyeColor }
+  }
+  return next
+}
+
+function migrateLocaleFacts(doc: Record<string, unknown>): {
+  doc: Record<string, unknown>
+  changed: boolean
+} {
+  let changed = false
+  const languagesByLocale = localeBucketMap(doc.languagesByLocale)
+  const appearanceTextByLocale = localeBucketMap(doc.appearanceTextByLocale)
+  const flatLangs = parseLanguageRows(doc.languages)
+  if (!parseLanguageRows(languagesByLocale.pl).some((row) => row.name) && flatLangs.some((row) => row.name)) {
+    languagesByLocale.pl = flatLangs
+    changed = true
+  }
+  const appearance = parseAppearanceText(doc.appearance)
+  const plText = parseAppearanceText(appearanceTextByLocale.pl)
+  if (!plText.hairColor && !plText.eyeColor && (appearance.hairColor || appearance.eyeColor)) {
+    appearanceTextByLocale.pl = appearance
+    changed = true
+  }
+  const seedEmpty = (loc: ContentLocale) => {
+    if (loc === 'pl' || !localeEnabled(doc, loc)) return
+    if (!(loc in languagesByLocale)) {
+      languagesByLocale[loc] = []
+      changed = true
+    }
+    if (!(loc in appearanceTextByLocale)) {
+      appearanceTextByLocale[loc] = { hairColor: '', eyeColor: '' }
+      changed = true
+    }
+  }
+  seedEmpty('en')
+  seedEmpty('es')
+  if (!changed) return { doc, changed: false }
+  return {
+    doc: { ...doc, languagesByLocale, appearanceTextByLocale },
+    changed: true,
   }
 }

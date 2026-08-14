@@ -1,6 +1,6 @@
 import type { ImageMetadata } from 'astro';
 import type { Locale } from './site.config';
-import { publicCopyForLocale } from '@/lib/cms/i18n';
+import { appearanceTextForPublic, languagesForPublic, publicCopyForLocale } from '@/lib/cms/i18n';
 import { loadHostess } from '@/lib/hostess';
 
 let _bundleRef: ReturnType<typeof loadHostess> | null = null
@@ -227,6 +227,17 @@ function buildContentBundle() {
   function buildAppearanceFacts(): AppearanceFact[] {
     const appearance = hostess.appearance ?? { height: '', dressSize: '', hairColor: '', eyeColor: '' };
     const mobility = hostess.mobility ?? { drivingLicense: '', hasCar: false };
+    const hostessDoc = hostess as unknown as Record<string, unknown>;
+    const hair = {
+      en: appearanceTextForPublic(hostessDoc, 'en').hairColor,
+      pl: appearanceTextForPublic(hostessDoc, 'pl').hairColor,
+      es: appearanceTextForPublic(hostessDoc, 'es').hairColor,
+    };
+    const eyes = {
+      en: appearanceTextForPublic(hostessDoc, 'en').eyeColor,
+      pl: appearanceTextForPublic(hostessDoc, 'pl').eyeColor,
+      es: appearanceTextForPublic(hostessDoc, 'es').eyeColor,
+    };
     const facts: AppearanceFact[] = [];
 
     if (appearance.height) {
@@ -245,20 +256,20 @@ function buildContentBundle() {
         value: { en: appearance.dressSize, pl: appearance.dressSize, es: appearance.dressSize },
       });
     }
-    if (appearance.hairColor) {
+    if (hair.en || hair.pl || hair.es) {
       facts.push({
         id: 'hair',
         icon: 'hair',
         label: { en: 'Hair', pl: 'Włosy', es: 'Cabello' },
-        value: { en: appearance.hairColor, pl: appearance.hairColor, es: appearance.hairColor },
+        value: hair,
       });
     }
-    if (appearance.eyeColor) {
+    if (eyes.en || eyes.pl || eyes.es) {
       facts.push({
         id: 'eyes',
         icon: 'eyes',
         label: { en: 'Eyes', pl: 'Oczy', es: 'Ojos' },
-        value: { en: appearance.eyeColor, pl: appearance.eyeColor, es: appearance.eyeColor },
+        value: eyes,
       });
     }
     if (mobility.drivingLicense) {
@@ -509,9 +520,9 @@ function buildContentBundle() {
       es: 'Idiomas',
     },
     languages: {
-      en: hostess.languages,
-      pl: hostess.languages,
-      es: hostess.languages,
+      en: languagesForPublic(hostess as unknown as Record<string, unknown>, 'en'),
+      pl: languagesForPublic(hostess as unknown as Record<string, unknown>, 'pl'),
+      es: languagesForPublic(hostess as unknown as Record<string, unknown>, 'es'),
     },
     about: {
       en: {

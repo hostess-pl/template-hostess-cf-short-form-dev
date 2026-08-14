@@ -157,8 +157,17 @@ export function EditApp({
     void load()
   }, [load])
 
+  useEffect(() => {
+    if (!dirty) return
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirty])
+
   function navigate(next: string) {
-    if (dirty && !confirm(t.discard)) return
     setSection(next as CmsSectionId)
     setOk('')
     setNavOpen(false)

@@ -3,9 +3,13 @@ import { useId, useState } from 'react'
 import { AssetPicker } from '@/components/edit/AssetPicker'
 import type { CmsChromeStrings, ContentLocale, CopyFields } from '@/lib/cms/i18n'
 import {
+  getAppearanceTextRaw,
   getCopyFieldPlaceholder,
   getCopyFieldsRaw,
+  getLanguagesRaw,
+  setAppearanceTextForLocale,
   setCopyForLocale,
+  setLanguagesForLocale,
 } from '@/lib/cms/i18n'
 import { HIDDEN_DOC_KEYS, type CmsSectionId } from '@/lib/cms/nav'
 import {
@@ -362,12 +366,11 @@ export function SectionEditor({
     const { raw, patch, ph } = copyEditorHelpers(document, contentLocale, onChange)
     const education = (document.education as Record<string, unknown>) || {}
     const entries = Array.isArray(education.entries) ? [...(education.entries as Record<string, unknown>[])] : []
-    const languages = Array.isArray(document.languages)
-      ? [...(document.languages as Record<string, unknown>[])]
-      : []
+    const languages = getLanguagesRaw(document, contentLocale)
     const traits = Array.isArray(document.traits) ? [...(document.traits as string[])] : []
     const skills = Array.isArray(document.skills) ? [...(document.skills as string[])] : []
     const appearance = (document.appearance as Record<string, unknown>) || {}
+    const appearanceText = getAppearanceTextRaw(document, contentLocale)
     const appearanceLabels = {
       height: t.fieldHeight,
       dressSize: t.fieldDressSize,
@@ -531,9 +534,11 @@ export function SectionEditor({
               index={index}
               total={languages.length}
               onRemove={() =>
-                onChange({ ...document, languages: languages.filter((_, i) => i !== index) })
+                onChange(setLanguagesForLocale(document, contentLocale, languages.filter((_, i) => i !== index)))
               }
-              onMove={(dir) => onChange({ ...document, languages: moveItem(languages, index, dir) })}
+              onMove={(dir) =>
+                onChange(setLanguagesForLocale(document, contentLocale, moveItem(languages, index, dir)))
+              }
             >
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label={t.fieldName}>
@@ -543,7 +548,7 @@ export function SectionEditor({
                     onChange={(name) => {
                       const next = [...languages]
                       next[index] = { ...lang, name }
-                      onChange({ ...document, languages: next })
+                      onChange(setLanguagesForLocale(document, contentLocale, next))
                     }}
                   />
                 </Field>
@@ -554,7 +559,7 @@ export function SectionEditor({
                     onChange={(level) => {
                       const next = [...languages]
                       next[index] = { ...lang, level }
-                      onChange({ ...document, languages: next })
+                      onChange(setLanguagesForLocale(document, contentLocale, next))
                     }}
                   />
                 </Field>
@@ -565,7 +570,9 @@ export function SectionEditor({
             type="button"
             className="cms-btn cms-btn-ghost"
             onClick={() =>
-              onChange({ ...document, languages: [...languages, { name: '', level: '' }] })
+              onChange(
+                setLanguagesForLocale(document, contentLocale, [...languages, { name: '', level: '' }]),
+              )
             }
           >
             {t.addItem}
@@ -627,21 +634,29 @@ export function SectionEditor({
         <section className="space-y-3">
           <h3 className="font-display text-lg font-semibold text-[var(--cms-ink)]">{t.subsectionPhysical}</h3>
           <div className="grid gap-3 sm:grid-cols-2">
-            {(['height', 'dressSize', 'hairColor', 'eyeColor'] as const).map((key) => (
+            {(['height', 'dressSize'] as const).map((key) => (
               <Field key={key} label={appearanceLabels[key]}>
                 <TextInput
-                  placeholder={
-                    key === 'height'
-                      ? t.phHeight
-                      : key === 'dressSize'
-                        ? t.phDressSize
-                        : key === 'hairColor'
-                          ? t.phHairColor
-                          : t.phEyeColor
-                  }
+                  placeholder={key === 'height' ? t.phHeight : t.phDressSize}
                   value={String(appearance[key] || '')}
                   onChange={(v) =>
                     onChange({ ...document, appearance: { ...appearance, [key]: v } })
+                  }
+                />
+              </Field>
+            ))}
+            {(['hairColor', 'eyeColor'] as const).map((key) => (
+              <Field key={key} label={appearanceLabels[key]}>
+                <TextInput
+                  placeholder={key === 'hairColor' ? t.phHairColor : t.phEyeColor}
+                  value={appearanceText[key] || ''}
+                  onChange={(v) =>
+                    onChange(
+                      setAppearanceTextForLocale(document, contentLocale, {
+                        ...appearanceText,
+                        [key]: v,
+                      }),
+                    )
                   }
                 />
               </Field>

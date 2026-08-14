@@ -97,16 +97,27 @@ function InsightsTeaser({
     <button
       type="button"
       onClick={onOpenAnalytics}
-      className="mb-6 w-full rounded-[var(--radius-lg)] border border-[var(--cms-line)] bg-[var(--cms-bg-elevated)] p-4 text-left transition hover:border-[var(--cms-ink)]/20 hover:bg-[var(--cms-soft)]"
+      className="mb-6 flex w-full cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--cms-line)] bg-[var(--cms-bg-elevated)] p-4 text-left transition hover:border-[var(--cms-ink)]/20 hover:bg-[var(--cms-soft)]"
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--cms-muted)]">
-        {isEn ? 'Insights' : 'Statystyki'}
-      </p>
-      <p className="mt-1 font-display text-xl font-semibold text-[var(--cms-ink)]">
-        {draft && views === 0
-          ? t.insightsTeaserDraft
-          : `${views} · ${t.insightsTeaser}`}
-      </p>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--cms-muted)]">
+          {isEn ? 'Insights' : 'Statystyki'}
+        </p>
+        <p className="mt-1 font-display text-xl font-semibold text-[var(--cms-ink)]">
+          {draft && views === 0
+            ? t.insightsTeaserDraft
+            : `${views} · ${t.insightsTeaser}`}
+        </p>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0 text-[var(--cms-muted)]">
+        <path
+          d="M9 5l7 7-7 7"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
     </button>
   )
 }
