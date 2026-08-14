@@ -36,7 +36,7 @@ export const hostessAssetsSchema = z
     hero: z.string().max(2000).optional().default(''),
   })
   .optional()
-  .default({});
+  .default({ hero: '' });
 
 export const educationEntrySchema = z.object({
   id: z.string().min(1).max(40),

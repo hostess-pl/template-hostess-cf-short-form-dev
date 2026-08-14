@@ -882,7 +882,7 @@ export function migrateCopyByLocale(doc: Record<string, unknown>): {
 
   if (!changed) return { doc, changed: false }
 
-  const next = { ...doc, copyByLocale: byLocale }
+  const next: Record<string, unknown> = { ...doc, copyByLocale: byLocale }
   if (!isEmptyCopyFields(byLocale.pl || {})) {
     next.copy = byLocale.pl
   }
