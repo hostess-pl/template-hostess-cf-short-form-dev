@@ -714,3 +714,139 @@ html[data-cms-theme='dark'] .cms-modal-backdrop {
     padding-right: 1.5rem;
   }
 }
+
+/* Short-form product: cms app shell (synced) */
+.cms-root.cms-shell {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.cms-shell {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.cms-sidebar {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cms-shell__main {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .cms-sidebar {
+    position: sticky;
+    top: 0;
+    align-self: stretch;
+    height: 100%;
+    max-height: 100dvh;
+  }
+}
+
+.cms-locale-pills {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cms-locale-pills__label {
+  margin-right: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--cms-muted);
+}
+
+.cms-locale-pill {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0 0.7rem;
+  border: 1px solid var(--cms-line);
+  border-radius: 999px;
+  background: var(--cms-bg-elevated);
+  color: var(--cms-ink-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.cms-locale-pill:hover {
+  border-color: color-mix(in srgb, var(--cms-accent) 40%, var(--cms-line));
+}
+
+.cms-locale-pill[data-active='true'] {
+  border-color: var(--cms-accent);
+  background: var(--cms-accent-soft);
+  color: var(--cms-ink);
+}
+
+.cms-media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.cms-media-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cms-media-card__frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 7.5rem;
+  padding: 0;
+  overflow: hidden;
+  border: 1px dashed var(--cms-line);
+  border-radius: var(--radius-lg);
+  background: var(--cms-bg);
+  cursor: pointer;
+}
+
+.cms-media-card__frame:hover {
+  border-color: color-mix(in srgb, var(--cms-accent) 45%, var(--cms-line));
+}
+
+.cms-media-card__media {
+  display: block;
+  width: 100%;
+  max-height: 10rem;
+  object-fit: cover;
+}
+
+.cms-media-card__empty {
+  padding: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--cms-muted);
+}
+
+.cms-media-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cms-media-card--add {
+  min-height: 7.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--cms-line);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--cms-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.cms-media-card--add:hover {
+  border-color: color-mix(in srgb, var(--cms-accent) 45%, var(--cms-line));
+  color: var(--cms-ink);
+}

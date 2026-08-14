@@ -4,9 +4,11 @@ import test from 'node:test'
 import {
   appearanceTextForPublic,
   defaultCopyPlaceholders,
+  eventTextForPublic,
   getAppearanceTextRaw,
   getCopyFieldsRaw,
   getCopyForLocale,
+  getEventTextRaw,
   getLanguagesRaw,
   languagesForPublic,
   migrateCopyByLocale,
@@ -15,6 +17,7 @@ import {
   seedCopyLocaleIfMissing,
   setAppearanceTextForLocale,
   setCopyForLocale,
+  setEventTextForLocale,
   setLanguagesForLocale,
 } from '../../src/lib/cms/i18n.ts'
 
@@ -183,4 +186,52 @@ test('migrateCopyByLocale seeds empty EN language and appearance buckets', () =>
   assert.equal(migrated.appearanceTextByLocale?.en?.hairColor, '')
   assert.equal(languagesForPublic(migrated, 'en').length, 0)
   assert.equal(appearanceTextForPublic(migrated, 'en').hairColor, '')
+})
+
+test('eventTextForPublic does not copy PL title into EN', () => {
+  const event = {
+    title: 'Targi Warszawa',
+    description: 'Opis PL',
+    titleByLocale: { pl: 'Targi Warszawa', en: '' },
+    descriptionByLocale: { pl: 'Opis PL', en: '' },
+  }
+  const en = eventTextForPublic(event, 'en')
+  const pl = eventTextForPublic(event, 'pl')
+  assert.equal(en.title, '')
+  assert.equal(pl.title, 'Targi Warszawa')
+  assert.equal(getEventTextRaw(event, 'en').title, '')
+})
+
+test('setEventTextForLocale en edit keeps PL title and shared photo', () => {
+  const doc = {
+    events: [
+      {
+        id: 'event-1',
+        title: 'Targi Warszawa',
+        description: 'Opis PL',
+        imageFile: 'cover.jpg',
+        titleByLocale: { pl: 'Targi Warszawa' },
+        descriptionByLocale: { pl: 'Opis PL' },
+      },
+    ],
+  }
+  const next = setEventTextForLocale(doc, 0, 'en', { title: 'Warsaw Expo', description: 'EN blurb' })
+  assert.equal(next.events?.[0]?.title, 'Targi Warszawa')
+  assert.equal(next.events?.[0]?.imageFile, 'cover.jpg')
+  assert.equal(next.events?.[0]?.titleByLocale?.en, 'Warsaw Expo')
+  assert.equal(next.events?.[0]?.titleByLocale?.pl, 'Targi Warszawa')
+})
+
+test('migrateCopyByLocale seeds empty EN event text buckets', () => {
+  const doc = {
+    events: [{ id: 'event-1', title: 'Targi Warszawa', description: 'Opis PL', imageFile: 'a.jpg' }],
+    locales: ['pl', 'en'],
+    extras: { englishVersion: true },
+  }
+  const { doc: migrated, changed } = migrateCopyByLocale(doc)
+  assert.equal(changed, true)
+  assert.equal(migrated.events?.[0]?.titleByLocale?.pl, 'Targi Warszawa')
+  assert.equal(migrated.events?.[0]?.titleByLocale?.en, '')
+  assert.equal(eventTextForPublic(migrated.events[0], 'en').title, '')
+  assert.equal(eventTextForPublic(migrated.events[0], 'pl').title, 'Targi Warszawa')
 })

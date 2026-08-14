@@ -1,6 +1,6 @@
 import type { ImageMetadata } from 'astro';
 import type { Locale } from './site.config';
-import { appearanceTextForPublic, languagesForPublic, publicCopyForLocale } from '@/lib/cms/i18n';
+import { appearanceTextForPublic, eventTextForPublic, languagesForPublic, publicCopyForLocale } from '@/lib/cms/i18n';
 import { loadHostess } from '@/lib/hostess';
 
 let _bundleRef: ReturnType<typeof loadHostess> | null = null
@@ -411,6 +411,10 @@ function buildContentBundle() {
         .map((ref) => String(ref || '').trim())
         .filter(Boolean)
         .map((ref) => resolveEventImage(ref))
+      const eventDoc = event as unknown as Record<string, unknown>
+      const enText = eventTextForPublic(eventDoc, 'en')
+      const plText = eventTextForPublic(eventDoc, 'pl')
+      const esText = eventTextForPublic(eventDoc, 'es')
       return {
         id: event.id,
         image: cover,
@@ -418,19 +422,19 @@ function buildContentBundle() {
         video: event.videoFile ? `/videos/${event.videoFile}` : null,
         date: eventYear(event.date),
         title: {
-          en: localizeText(event.title, 'en'),
-          pl: localizeText(event.title, 'pl'),
-          es: localizeText(event.title, 'es'),
+          en: enText.title,
+          pl: plText.title,
+          es: esText.title,
         },
         description: {
-          en: localizeText(event.description, 'en'),
-          pl: localizeText(event.description, 'pl'),
-          es: localizeText(event.description, 'es'),
+          en: enText.description,
+          pl: plText.description,
+          es: esText.description,
         },
         alt: {
-          en: event.title ? `${displayName} at ${event.title}` : `${displayName} portfolio`,
-          pl: event.title ? `${displayName} — ${event.title}` : `${displayName} — portfolio`,
-          es: event.title ? `${displayName} — ${event.title}` : `${displayName} — portfolio`,
+          en: enText.title ? `${displayName} at ${enText.title}` : `${displayName} portfolio`,
+          pl: plText.title ? `${displayName} — ${plText.title}` : `${displayName} — portfolio`,
+          es: esText.title ? `${displayName} — ${esText.title}` : `${displayName} — portfolio`,
         },
       }
     });

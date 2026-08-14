@@ -1209,9 +1209,110 @@ function migrateLocaleFacts(doc: Record<string, unknown>): {
   }
   seedEmpty('en')
   seedEmpty('es')
-  if (!changed) return { doc, changed: false }
-  return {
-    doc: { ...doc, languagesByLocale, appearanceTextByLocale },
-    changed: true,
+  const eventsMigrated = migrateEventTexts(doc)
+  if (!changed && !eventsMigrated.changed) return { doc, changed: false }
+  const next: Record<string, unknown> = { ...doc, languagesByLocale, appearanceTextByLocale }
+  if (eventsMigrated.changed) next.events = eventsMigrated.events
+  return { doc: next, changed: true }
+}
+
+export type EventText = { title: string; description: string }
+
+function eventAsRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? { ...(value as Record<string, unknown>) }
+    : {}
+}
+
+/** CMS editor: locale bucket only. EN/ES never show PL event copy. */
+export function getEventTextRaw(
+  event: Record<string, unknown>,
+  locale: ContentLocale,
+): EventText {
+  const titles = localeBucketMap(event.titleByLocale)
+  const descs = localeBucketMap(event.descriptionByLocale)
+  if (locale !== 'pl') {
+    return {
+      title: String(titles[locale] || '').trim(),
+      description: String(descs[locale] || '').trim(),
+    }
   }
+  return {
+    title: String(titles.pl || event.title || '').trim(),
+    description: String(descs.pl || event.description || '').trim(),
+  }
+}
+
+/** Public site: EN/ES never fall back to PL event titles/descriptions. */
+export function eventTextForPublic(
+  event: Record<string, unknown>,
+  locale: ContentLocale,
+): EventText {
+  const titles = localeBucketMap(event.titleByLocale)
+  const descs = localeBucketMap(event.descriptionByLocale)
+  const title = String(titles[locale] || '').trim()
+  const description = String(descs[locale] || '').trim()
+  if (title || description) return { title, description }
+  if (locale !== 'pl') return { title: '', description: '' }
+  return {
+    title: String(event.title || '').trim(),
+    description: String(event.description || '').trim(),
+  }
+}
+
+export function setEventTextForLocale(
+  doc: Record<string, unknown>,
+  index: number,
+  locale: ContentLocale,
+  text: EventText,
+): Record<string, unknown> {
+  const events = Array.isArray(doc.events) ? [...(doc.events as Record<string, unknown>[])] : []
+  const event = eventAsRecord(events[index])
+  const titles = localeBucketMap(event.titleByLocale)
+  const descs = localeBucketMap(event.descriptionByLocale)
+  event.titleByLocale = { ...titles, [locale]: text.title }
+  event.descriptionByLocale = { ...descs, [locale]: text.description }
+  if (locale === 'pl') {
+    event.title = text.title
+    event.description = text.description
+  }
+  events[index] = event
+  return { ...doc, events }
+}
+
+function migrateEventTexts(doc: Record<string, unknown>): {
+  events: Record<string, unknown>[]
+  changed: boolean
+} {
+  const source = Array.isArray(doc.events) ? (doc.events as unknown[]) : []
+  let changed = false
+  const events = source.map((raw) => {
+    const event = eventAsRecord(raw)
+    const titles = localeBucketMap(event.titleByLocale)
+    const descs = localeBucketMap(event.descriptionByLocale)
+    const flatTitle = String(event.title || '').trim()
+    const flatDesc = String(event.description || '').trim()
+    if (!String(titles.pl || '').trim() && (flatTitle || flatDesc)) {
+      titles.pl = flatTitle
+      descs.pl = flatDesc
+      changed = true
+    }
+    const seedEmpty = (loc: ContentLocale) => {
+      if (loc === 'pl' || !localeEnabled(doc, loc)) return
+      if (!(loc in titles)) {
+        titles[loc] = ''
+        changed = true
+      }
+      if (!(loc in descs)) {
+        descs[loc] = ''
+        changed = true
+      }
+    }
+    seedEmpty('en')
+    seedEmpty('es')
+    event.titleByLocale = titles
+    event.descriptionByLocale = descs
+    return event
+  })
+  return { events, changed }
 }

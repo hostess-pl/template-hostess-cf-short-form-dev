@@ -6,9 +6,11 @@ import {
   getAppearanceTextRaw,
   getCopyFieldPlaceholder,
   getCopyFieldsRaw,
+  getEventTextRaw,
   getLanguagesRaw,
   setAppearanceTextForLocale,
   setCopyForLocale,
+  setEventTextForLocale,
   setLanguagesForLocale,
 } from '@/lib/cms/i18n'
 import { HIDDEN_DOC_KEYS, type CmsSectionId } from '@/lib/cms/nav'
@@ -118,28 +120,56 @@ function ContentLocaleToolbar({
   onContentLocaleChange: (locale: ContentLocale) => void
   t: CmsChromeStrings
 }) {
-  if (contentLocales.length <= 1) {
+  return (
+    <div className="mb-3">
+      <LocalePills
+        label={t.contentLang}
+        value={contentLocale}
+        options={contentLocales}
+        onChange={(next) => onContentLocaleChange(next as ContentLocale)}
+      />
+    </div>
+  )
+}
+
+export function LocalePills({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: string
+  options: string[]
+  onChange: (next: string) => void
+}) {
+  if (options.length <= 1) {
     return (
       <p className="text-xs text-[var(--cms-muted)]">
-        {t.contentLang}: {contentLocale.toUpperCase()}
+        {label}: {String(value || options[0] || '').toUpperCase()}
       </p>
     )
   }
   return (
-    <label className="mb-2 flex items-center gap-2 text-xs text-[var(--cms-muted)]">
-      {t.contentLang}
-      <select
-        className="cms-input !w-auto !py-1"
-        value={contentLocale}
-        onChange={(e) => onContentLocaleChange(e.target.value as ContentLocale)}
-      >
-        {contentLocales.map((loc) => (
-          <option key={loc} value={loc}>
+    <div className="cms-locale-pills" role="radiogroup" aria-label={label}>
+      <span className="cms-locale-pills__label">{label}</span>
+      {options.map((loc) => {
+        const active = value === loc
+        return (
+          <button
+            key={loc}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            data-active={active}
+            className="cms-locale-pill"
+            onClick={() => onChange(loc)}
+          >
             {loc.toUpperCase()}
-          </option>
-        ))}
-      </select>
-    </label>
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -161,21 +191,24 @@ function MediaEditor({
   const video = kind === 'video' || isVideoUrl(preview)
 
   return (
-    <div className="space-y-2">
-      {preview ? (
-        <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--cms-line)] bg-[var(--cms-bg)]">
-          {video ? (
-            <video src={preview} className="max-h-40 w-full object-contain" controls preload="metadata" />
+    <div className="cms-media-card">
+      <button
+        type="button"
+        className="cms-media-card__frame"
+        onClick={() => setPickerOpen(true)}
+        aria-label={t.chooseAsset}
+      >
+        {preview ? (
+          video ? (
+            <video src={preview} className="cms-media-card__media" controls preload="metadata" />
           ) : (
-            <img src={preview} alt="" className="max-h-40 w-auto object-contain" />
-          )}
-        </div>
-      ) : (
-        <div className="cms-panel flex h-28 items-center justify-center text-xs text-[var(--cms-muted)]">
-          {t.noAsset}
-        </div>
-      )}
-      <div className="flex flex-wrap gap-2">
+            <img src={preview} alt="" className="cms-media-card__media" />
+          )
+        ) : (
+          <span className="cms-media-card__empty">{t.noAsset}</span>
+        )}
+      </button>
+      <div className="cms-media-card__actions">
         <button type="button" className="cms-btn cms-btn-primary" onClick={() => setPickerOpen(true)}>
           {t.chooseAsset}
         </button>
@@ -190,7 +223,7 @@ function MediaEditor({
       </div>
       {showUrl ? (
         <input
-          type="text"
+          type="url"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="cms-input"
@@ -888,11 +921,14 @@ export function SectionEditor({
             />
           </Field>
         </section>
-        {events.map((event, index) => (
+        {events.map((event, index) => {
+          const eventText = getEventTextRaw(event, contentLocale)
+          const extras = Array.isArray(event.imageFiles) ? (event.imageFiles as string[]) : []
+          return (
           <ListCard
             key={String(event.id || index)}
             title={
-              [String(event.title || t.untitledEvent), String(event.date || '')]
+              [eventText.title || t.untitledEvent, String(event.date || '')]
                 .filter(Boolean)
                 .join(' — ')
             }
@@ -906,12 +942,15 @@ export function SectionEditor({
               <Field label={t.fieldTitle}>
                 <TextInput
                   placeholder={t.phTitle}
-                  value={String(event.title || '')}
-                  onChange={(title) => {
-                    const next = [...events]
-                    next[index] = { ...event, title }
-                    onChange({ ...document, events: next })
-                  }}
+                  value={eventText.title}
+                  onChange={(title) =>
+                    onChange(
+                      setEventTextForLocale(document, index, contentLocale, {
+                        ...eventText,
+                        title,
+                      }),
+                    )
+                  }
                 />
               </Field>
               <Field label={t.fieldDate}>
@@ -941,12 +980,15 @@ export function SectionEditor({
               <TextInput
                 multiline
                 placeholder={t.phDescription}
-                value={String(event.description || '')}
-                onChange={(description) => {
-                  const next = [...events]
-                  next[index] = { ...event, description }
-                  onChange({ ...document, events: next })
-                }}
+                value={eventText.description}
+                onChange={(description) =>
+                  onChange(
+                    setEventTextForLocale(document, index, contentLocale, {
+                      ...eventText,
+                      description,
+                    }),
+                  )
+                }
               />
             </Field>
             <Field label={t.fieldPhoto}>
@@ -962,48 +1004,29 @@ export function SectionEditor({
               />
             </Field>
             <Field label={t.fieldExtraPhotos}>
-              <div className="space-y-3">
-                {(Array.isArray(event.imageFiles) ? event.imageFiles : []).map(
-                  (extra: string, extraIndex: number) => (
-                    <div key={`extra-${index}-${extraIndex}`} className="flex items-start gap-2">
-                      <div className="min-w-0 flex-1">
-                        <MediaEditor
-                          field="imageFile"
-                          t={t}
-                          value={String(extra || '')}
-                          onChange={(value) => {
-                            const extras = [...(Array.isArray(event.imageFiles) ? event.imageFiles : [])]
-                            extras[extraIndex] = value
-                            const next = [...events]
-                            next[index] = { ...event, imageFiles: extras.filter(Boolean) }
-                            onChange({ ...document, events: next })
-                          }}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        className="cms-btn cms-btn-ghost shrink-0"
-                        onClick={() => {
-                          const extras = [...(Array.isArray(event.imageFiles) ? event.imageFiles : [])]
-                          extras.splice(extraIndex, 1)
-                          const next = [...events]
-                          next[index] = { ...event, imageFiles: extras }
-                          onChange({ ...document, events: next })
-                        }}
-                      >
-                        {t.remove}
-                      </button>
-                    </div>
-                  ),
-                )}
-                {(Array.isArray(event.imageFiles) ? event.imageFiles : []).length < 8 ? (
+              <div className="cms-media-grid">
+                {extras.map((extra: string, extraIndex: number) => (
+                  <MediaEditor
+                    key={`extra-${index}-${extraIndex}`}
+                    field="imageFile"
+                    t={t}
+                    value={String(extra || '')}
+                    onChange={(value) => {
+                      const nextExtras = [...extras]
+                      nextExtras[extraIndex] = value
+                      const next = [...events]
+                      next[index] = { ...event, imageFiles: nextExtras.filter(Boolean) }
+                      onChange({ ...document, events: next })
+                    }}
+                  />
+                ))}
+                {extras.length < 8 ? (
                   <button
                     type="button"
-                    className="cms-btn cms-btn-ghost"
+                    className="cms-media-card cms-media-card--add"
                     onClick={() => {
-                      const extras = [...(Array.isArray(event.imageFiles) ? event.imageFiles : []), '']
                       const next = [...events]
-                      next[index] = { ...event, imageFiles: extras }
+                      next[index] = { ...event, imageFiles: [...extras, ''] }
                       onChange({ ...document, events: next })
                     }}
                   >
@@ -1025,7 +1048,8 @@ export function SectionEditor({
               />
             </Field>
           </ListCard>
-        ))}
+          )
+        })}
         <button
           type="button"
           className="cms-btn cms-btn-ghost"

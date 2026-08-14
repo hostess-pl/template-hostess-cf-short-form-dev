@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AnalyticsDashboard } from '@/components/edit/AnalyticsDashboard'
 import { AssetsLibrary } from '@/components/edit/AssetsLibrary'
 import { EditDashboard } from '@/components/edit/EditDashboard'
-import { SectionEditor } from '@/components/edit/SectionEditor'
+import { SectionEditor, LocalePills } from '@/components/edit/SectionEditor'
 import { SetPasswordGate } from '@/components/edit/SetPasswordGate'
 import { ThemeIconButton } from '@/components/edit/LoginThemeToggle'
 import { PublishConfirmModal } from '@/components/edit/PublishConfirmModal'
@@ -91,6 +91,7 @@ export function EditApp({
     nav.some((n) => n.id === initialSection) ? (initialSection as CmsSectionId) : 'dashboard',
   )
   const [document, setDocument] = useState<Record<string, unknown> | null>(null)
+  const [savedSnapshot, setSavedSnapshot] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -143,7 +144,9 @@ export function EditApp({
       const res = await fetch('/api/edit/document')
       const json = (await res.json()) as { data?: Record<string, unknown>; error?: string }
       if (!res.ok) throw new Error(json.error || t.loadFailed)
-      setDocument(json.data ?? {})
+      const data = json.data ?? {}
+      setDocument(data)
+      setSavedSnapshot(structuredClone(data))
       setDirty(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : t.loadFailed)
@@ -168,6 +171,15 @@ export function EditApp({
   }, [dirty])
 
   function navigate(next: string) {
+    if (next === section) {
+      setNavOpen(false)
+      return
+    }
+    if (dirty) {
+      if (!window.confirm(t.discard)) return
+      setDocument(savedSnapshot ? structuredClone(savedSnapshot) : null)
+      setDirty(false)
+    }
     setSection(next as CmsSectionId)
     setOk('')
     setNavOpen(false)
@@ -188,6 +200,7 @@ export function EditApp({
       if (!res.ok) throw new Error(json.error || t.saveFailed)
       setOk(t.saved)
       setDirty(false)
+      if (document) setSavedSnapshot(structuredClone(document))
     } catch (err) {
       setError(err instanceof Error ? err.message : t.saveFailed)
     } finally {
@@ -282,21 +295,16 @@ export function EditApp({
             <h1 className="cms-shell__title">{title}</h1>
           </div>
           <div className="cms-shell__header-actions">
-            <label className="flex items-center gap-1 text-xs text-[var(--cms-muted)]">
-              {t.chromeLang}
-              <select
-                className="cms-input !w-auto !py-1"
-                value={chromeLocale}
-                onChange={(e) => {
-                  const next = e.target.value === 'en' ? 'en' : 'pl'
-                  setChromeLocale(next)
-                  storeChromeLocale(next)
-                }}
-              >
-                <option value="pl">PL</option>
-                <option value="en">EN</option>
-              </select>
-            </label>
+            <LocalePills
+              label={t.chromeLang}
+              value={chromeLocale}
+              options={['pl', 'en']}
+              onChange={(next) => {
+                const locale = next === 'en' ? 'en' : 'pl'
+                setChromeLocale(locale)
+                storeChromeLocale(locale)
+              }}
+            />
             <ThemeIconButton theme={theme} onToggle={toggleTheme} t={t} />
             <button
               type="button"

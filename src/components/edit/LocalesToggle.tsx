@@ -64,8 +64,8 @@ export function LocalesToggle({ document, onChange, chromeLocale }: Props) {
       </label>
       <p className="text-[11px] text-[var(--cms-muted)]">
         {isEn
-          ? 'Polish stays the default. Event titles stay shared across languages for now.'
-          : 'Polski pozostaje domyślny. Tytuły wydarzeń są wspólne dla wszystkich języków (na razie).'}
+          ? 'Polish stays the default. Event photos stay shared. Titles and descriptions are per language.'
+          : 'Polski pozostaje domyślny. Zdjęcia wydarzeń są wspólne. Tytuły i opisy edytujesz osobno dla każdego języka.'}
       </p>
     </section>
   )

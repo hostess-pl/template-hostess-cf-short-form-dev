@@ -23,6 +23,20 @@ export const hostessEventSchema = z.object({
   /** Extra photos for the event lightbox slider (cover is imageFile). */
   imageFiles: z.array(z.string().max(2000)).max(8).optional().default([]),
   brand: z.string().max(120).optional(),
+  titleByLocale: z
+    .object({
+      pl: z.string().max(200).optional().default(''),
+      en: z.string().max(200).optional().default(''),
+      es: z.string().max(200).optional().default(''),
+    })
+    .optional(),
+  descriptionByLocale: z
+    .object({
+      pl: z.string().max(2000).optional().default(''),
+      en: z.string().max(2000).optional().default(''),
+      es: z.string().max(2000).optional().default(''),
+    })
+    .optional(),
   videoFile: z
     .string()
     .max(40)
