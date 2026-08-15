@@ -13,8 +13,14 @@ import {
   assertAllowedImageUrl,
   assertAllowedVideoBuffer,
   assertAllowedVideoUrl,
+  detectImageFormat,
   eventVideoFileName,
 } from './safe-media.mjs';
+import {
+  heicToJpegBuffer,
+  isHeicDecodeError,
+  prepareImageBufferForSharp,
+} from './heic-decode.mjs';
 import {
   resolveFaviconLetter,
   writeFavicon,
@@ -266,13 +272,20 @@ async function downloadImage(url, destination, maxWidth = 1600) {
     throw new Error(`Image too large (${buffer.length} bytes)`);
   }
 
-  const meta = await sharp(buffer, { failOn: 'error' }).metadata();
-  const formatCheck = assertAllowedImageBuffer(buffer, { format: meta.format });
+  const formatCheck = assertAllowedImageBuffer(buffer, { format: detectImageFormat(buffer) });
   if (!formatCheck.ok) {
     throw new Error(`Blocked image buffer (${formatCheck.error})`);
   }
 
-  const resized = await sharp(buffer, { failOn: 'error' })
+  let work = await prepareImageBufferForSharp(buffer);
+  try {
+    await sharp(work, { failOn: 'error' }).metadata();
+  } catch (err) {
+    if (!isHeicDecodeError(err)) throw err;
+    work = await heicToJpegBuffer(buffer);
+  }
+
+  const resized = await sharp(work, { failOn: 'error' })
     .rotate()
     .resize({ width: maxWidth, withoutEnlargement: true })
     .jpeg({ quality: 85 })
@@ -517,7 +530,9 @@ async function main() {
   console.log(`[provision] Result: ${JSON.stringify(result)}`);
 }
 
-main().catch((error) => {
-  console.error('[provision] Failed:', error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error('[provision] Failed:', error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}

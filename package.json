@@ -21,7 +21,8 @@
     "cms:login-link": "node scripts/generate-cms-login-link.mjs",
     "deploy:cms-verify": "node scripts/deploy-cms-verify.mjs",
     "test:completion": "node --experimental-strip-types scripts/test/portfolioCompletion.test.mjs",
-    "test:copyByLocale": "node --experimental-strip-types scripts/test/copyByLocale.test.mjs"
+    "test:copyByLocale": "node --experimental-strip-types scripts/test/copyByLocale.test.mjs",
+    "test:heicProvision": "node scripts/test/heicProvision.test.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.0.0",
@@ -32,6 +33,7 @@
     "@supabase/supabase-js": "^2.49.8",
     "astro": "^6.3.1",
     "clsx": "^2.1.1",
+    "heic-convert": "^2.1.0",
     "resend": "^6.12.3",
     "tailwind-merge": "^2.6.0",
     "@astrojs/react": "^4.4.2",
