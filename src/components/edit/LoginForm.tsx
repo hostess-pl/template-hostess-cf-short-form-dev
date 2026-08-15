@@ -17,68 +17,114 @@ type Props = {
   t: CmsChromeStrings
 }
 
-type Mode = 'magic' | 'password' | 'forgot'
+type Mode = 'otp' | 'password' | 'forgot'
+
+const OTP_RE = /^\d{6}$/
+
+function isAuthRateLimited(message: string): boolean {
+  const lower = message.toLowerCase()
+  return (
+    lower.includes('rate limit') ||
+    lower.includes('over_email_send_rate_limit') ||
+    lower.includes('only request this after') ||
+    lower.includes('security purposes')
+  )
+}
 
 export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
-  const [mode, setMode] = useState<Mode>('magic')
+  const [mode, setMode] = useState<Mode>('otp')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [otp, setOtp] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
   const [message, setMessage] = useState('')
 
-  async function onMagicSubmit(event: FormEvent) {
+  async function requestOtpInvite(): Promise<void> {
+    const res = await fetch('/api/edit/auth/magic-link', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ email }),
+    })
+    const data = (await res.json().catch(() => ({}))) as {
+      error?: string
+      ok?: boolean
+      retryAfterSec?: number
+    }
+    if (!res.ok) {
+      if (res.status === 429) {
+        const wait =
+          typeof data.retryAfterSec === 'number' && data.retryAfterSec > 0
+            ? ` (${Math.ceil(data.retryAfterSec / 60)} min)`
+            : ''
+        throw new Error((data.error || t.magicLinkWait) + wait)
+      }
+      throw new Error(data.error || t.couldNotSendLink)
+    }
+  }
+
+  async function sendOtpEmail(): Promise<void> {
+    const supabase = createSupabaseBrowser(supabaseUrl, supabaseAnonKey)
+    if (!supabase) throw new Error(t.authNotConfigured)
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: { shouldCreateUser: false },
+    })
+    if (error) {
+      if (isAuthRateLimited(error.message)) throw new Error(t.emailRateLimited)
+      throw error
+    }
+  }
+
+  async function onOtpRequest(event: FormEvent) {
     event.preventDefault()
     setStatus('loading')
     setMessage('')
     try {
-      const res = await fetch('/api/edit/auth/magic-link', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ email }),
-      })
-      const data = (await res.json().catch(() => ({}))) as {
-        error?: string
-        ok?: boolean
-        redirectTo?: string
-        retryAfterSec?: number
-      }
-      if (!res.ok) {
-        if (res.status === 429) {
-          const wait =
-            typeof data.retryAfterSec === 'number' && data.retryAfterSec > 0
-              ? ` (${Math.ceil(data.retryAfterSec / 60)} min)`
-              : ''
-          throw new Error((data.error || t.magicLinkWait) + wait)
-        }
-        throw new Error(data.error || t.couldNotSendLink)
-      }
+      await requestOtpInvite()
+      await sendOtpEmail()
+      setOtp('')
+      setOtpSent(true)
+      setStatus('sent')
+      setMessage(t.magicLinkSent)
+    } catch (error) {
+      setStatus('error')
+      setMessage(error instanceof Error ? error.message : t.somethingWentWrong)
+    }
+  }
 
-      const redirectTo = data.redirectTo || `${window.location.origin}/edit/auth/callback`
+  async function onOtpVerify(event: FormEvent) {
+    event.preventDefault()
+    setStatus('loading')
+    setMessage('')
+    try {
+      const token = otp.trim()
+      if (!OTP_RE.test(token)) throw new Error(t.invalidOtp)
       const supabase = createSupabaseBrowser(supabaseUrl, supabaseAnonKey)
       if (!supabase) throw new Error(t.authNotConfigured)
-
-      // PKCE: code_verifier stays in this browser — open the emailed link here.
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.verifyOtp({
         email: email.trim().toLowerCase(),
-        options: {
-          emailRedirectTo: redirectTo,
-          shouldCreateUser: false,
-        },
+        token,
+        type: 'email',
       })
-      if (error) {
-        const lower = error.message.toLowerCase()
-        if (
-          lower.includes('rate limit') ||
-          lower.includes('over_email_send_rate_limit') ||
-          lower.includes('only request this after') ||
-          lower.includes('security purposes')
-        ) {
-          throw new Error(t.emailRateLimited)
-        }
-        throw error
-      }
+      if (error) throw new Error(t.otpVerifyFailed)
+      window.location.assign('/edit/app')
+    } catch (error) {
+      setStatus('error')
+      setMessage(error instanceof Error ? error.message : t.somethingWentWrong)
+    }
+  }
 
+  async function onOtpResend() {
+    setStatus('loading')
+    setMessage('')
+    try {
+      await requestOtpInvite()
+      await sendOtpEmail()
+      setOtp('')
+      setOtpSent(true)
       setStatus('sent')
       setMessage(t.magicLinkSent)
     } catch (error) {
@@ -130,7 +176,11 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
     setMode(next)
     setStatus('idle')
     setMessage('')
+    setOtp('')
+    setOtpSent(false)
   }
+
+  const otpFormSubmit = otpSent ? onOtpVerify : onOtpRequest
 
   return (
     <div className="space-y-4">
@@ -138,9 +188,9 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
         <button
           type="button"
           role="tab"
-          aria-selected={mode === 'magic'}
-          className={`cms-btn ${mode === 'magic' ? 'cms-btn-primary' : 'cms-btn-ghost'}`}
-          onClick={() => setTab('magic')}
+          aria-selected={mode === 'otp'}
+          className={`cms-btn ${mode === 'otp' ? 'cms-btn-primary' : 'cms-btn-ghost'}`}
+          onClick={() => setTab('otp')}
         >
           {t.magicLinkTab}
         </button>
@@ -157,7 +207,7 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
 
       <form
         onSubmit={
-          mode === 'magic' ? onMagicSubmit : mode === 'forgot' ? onForgotSubmit : onPasswordSubmit
+          mode === 'otp' ? otpFormSubmit : mode === 'forgot' ? onForgotSubmit : onPasswordSubmit
         }
         className="cms-login__form"
       >
@@ -172,8 +222,27 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
             onChange={(e) => setEmail(e.target.value)}
             className="cms-input"
             placeholder="you@hostesswebs.pl"
+            disabled={mode === 'otp' && otpSent}
           />
         </div>
+        {mode === 'otp' && otpSent ? (
+          <div className="cms-login__field cms-field">
+            <label htmlFor="otp">{t.otpCode}</label>
+            <input
+              id="otp"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              autoComplete="one-time-code"
+              required
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className="cms-input"
+              placeholder="000000"
+            />
+          </div>
+        ) : null}
         {mode === 'password' ? (
           <div className="cms-login__field cms-field">
             <label htmlFor="password">{t.password}</label>
@@ -191,12 +260,39 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
         <button type="submit" disabled={status === 'loading'} className="cms-btn cms-btn-primary">
           {status === 'loading'
             ? '…'
-            : mode === 'magic'
-              ? t.emailMagicLink
+            : mode === 'otp'
+              ? otpSent
+                ? t.verifyOtp
+                : t.emailMagicLink
               : mode === 'forgot'
                 ? t.sendReset
                 : t.signIn}
         </button>
+        {mode === 'otp' && otpSent ? (
+          <button
+            type="button"
+            className="cms-btn cms-btn-ghost"
+            disabled={status === 'loading'}
+            onClick={() => void onOtpResend()}
+          >
+            {t.resendOtp}
+          </button>
+        ) : null}
+        {mode === 'otp' && otpSent ? (
+          <button
+            type="button"
+            className="cms-btn cms-btn-ghost"
+            disabled={status === 'loading'}
+            onClick={() => {
+              setOtpSent(false)
+              setOtp('')
+              setStatus('idle')
+              setMessage('')
+            }}
+          >
+            {t.backToSignIn}
+          </button>
+        ) : null}
         {mode === 'password' ? (
           <button type="button" className="cms-btn cms-btn-ghost" onClick={() => setTab('forgot')}>
             {t.forgotPassword}
