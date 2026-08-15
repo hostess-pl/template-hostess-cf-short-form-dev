@@ -311,7 +311,7 @@ const PL: CmsChromeStrings = {
   themeLight: 'Jasny',
   loginTitle: 'Edytor treści',
   loginLede:
-    'Tylko dla zaproszonych. Użyj linku magicznego albo e-mail i hasło po pierwszym logowaniu.',
+    'Tylko dla zaproszonych. Użyj linku magicznego (otwórz w tej samej przeglądarce) albo e-mail i hasło po pierwszym logowaniu.',
   loginConfigError: 'Klucze publiczne Supabase nie są skonfigurowane w tym środowisku.',
   loginAuthError: 'Link logowania wygasł lub jest nieprawidłowy. Poproś o nowy.',
   loginInviteError: 'To konto nie ma zaproszenia do edycji tej strony.',
@@ -324,7 +324,7 @@ const PL: CmsChromeStrings = {
   signIn: 'Zaloguj',
   backToSignIn: 'Wróć do logowania',
   magicLinkSent:
-    'Jeśli masz zaproszenie, sprawdź skrzynkę. Otwórz link w ciągu około godziny. Link magiczny nie zmienia hasła.',
+    'Jeśli masz zaproszenie, sprawdź skrzynkę. Otwórz link w tej samej przeglądarce w ciągu około godziny. Link magiczny nie zmienia hasła.',
   magicLinkWait: 'Odczekaj chwilę przed kolejną prośbą o link.',
   couldNotSendLink: 'Nie udało się wysłać linku',
   authNotConfigured: 'Logowanie nie jest skonfigurowane',
@@ -549,7 +549,7 @@ const EN: CmsChromeStrings = {
   themeLight: 'Light',
   loginTitle: 'Content editor',
   loginLede:
-    'Invite-only. Use a magic link or email + password after your first sign-in.',
+    'Invite-only. Use a magic link (open it in this same browser) or email + password after your first sign-in.',
   loginConfigError: 'Supabase public keys are not configured on this environment.',
   loginAuthError: 'Sign-in link expired or invalid. Request a new one.',
   loginInviteError: 'This account is not invited to edit this site.',
@@ -562,7 +562,7 @@ const EN: CmsChromeStrings = {
   signIn: 'Sign in',
   backToSignIn: 'Back to sign in',
   magicLinkSent:
-    'If you are invited, check your inbox. Open the link within about an hour. Magic link does not change your password.',
+    'If you are invited, check your inbox. Open the link in this same browser within about an hour. Magic link does not change your password.',
   magicLinkWait: 'Please wait before requesting another link.',
   couldNotSendLink: 'Could not send link',
   authNotConfigured: 'Auth is not configured',
