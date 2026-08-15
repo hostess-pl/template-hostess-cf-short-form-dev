@@ -31,7 +31,6 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
     setStatus('loading')
     setMessage('')
     try {
-      // Server generates token_hash link and sends via Resend (avoids shared Auth SMTP limits).
       const res = await fetch('/api/edit/auth/magic-link', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -41,7 +40,7 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
       const data = (await res.json().catch(() => ({}))) as {
         error?: string
         ok?: boolean
-        sent?: boolean
+        redirectTo?: string
         retryAfterSec?: number
       }
       if (!res.ok) {
@@ -53,6 +52,31 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
           throw new Error((data.error || t.magicLinkWait) + wait)
         }
         throw new Error(data.error || t.couldNotSendLink)
+      }
+
+      const redirectTo = data.redirectTo || `${window.location.origin}/edit/auth/callback`
+      const supabase = createSupabaseBrowser(supabaseUrl, supabaseAnonKey)
+      if (!supabase) throw new Error(t.authNotConfigured)
+
+      // PKCE: code_verifier stays in this browser — open the emailed link here.
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: redirectTo,
+          shouldCreateUser: false,
+        },
+      })
+      if (error) {
+        const lower = error.message.toLowerCase()
+        if (
+          lower.includes('rate limit') ||
+          lower.includes('over_email_send_rate_limit') ||
+          lower.includes('only request this after') ||
+          lower.includes('security purposes')
+        ) {
+          throw new Error(t.emailRateLimited)
+        }
+        throw error
       }
 
       setStatus('sent')
