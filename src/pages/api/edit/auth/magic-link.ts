@@ -11,29 +11,11 @@ const WINDOW_MINUTES = 60
 const MAX_PER_WINDOW = 2
 
 const COOLDOWN_MESSAGE =
-  'Please wait before requesting another link for this site (limit: 2 per hour).'
+  'Please wait before requesting another code for this site (limit: 2 per hour).'
 const UNAVAILABLE_MESSAGE = 'Sign-in is temporarily unavailable. Please try again shortly.'
 const INVITE_ONLY_MESSAGE = 'This email is not invited to edit this site.'
 
 export const prerender = false
-
-function isLocalHost(url: string): boolean {
-  return url.includes('localhost') || url.includes('127.0.0.1')
-}
-
-function resolveAuthSiteOrigin(request: Request): string {
-  try {
-    const origin = new URL(request.url).origin.replace(/\/$/, '')
-    if (origin && !isLocalHost(origin)) return origin
-  } catch {
-    // fall through
-  }
-  try {
-    return new URL(request.url).origin.replace(/\/$/, '')
-  } catch {
-    return 'http://localhost:4321'
-  }
-}
 
 function parseOpsOwnerEmails(): Set<string> {
   const raw =
@@ -91,8 +73,8 @@ async function consumeInviteCheckQuota(email: string): Promise<
 }
 
 /**
- * Invite gate only. The browser must call signInWithOtp so the PKCE code_verifier
- * stays in localStorage — server-side OTP breaks same-browser / one-time Auth OTP.
+ * Invite gate only. Browser then calls signInWithOtp (no emailRedirectTo) and
+ * verifyOtp({ type: 'email' }) with the 6-digit code — no PKCE / no clickable link.
  */
 export const POST: APIRoute = async ({ request }) => {
   let body: { email?: string }
@@ -142,6 +124,5 @@ export const POST: APIRoute = async ({ request }) => {
     )
   }
 
-  const redirectTo = `${resolveAuthSiteOrigin(request)}/edit/auth/callback`
-  return jsonOk({ ok: true, redirectTo })
+  return jsonOk({ ok: true })
 }
