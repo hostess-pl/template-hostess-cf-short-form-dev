@@ -41,6 +41,8 @@ jobs:
           HOSTING_PLAN: ${{ github.event.client_payload.hostingPlan }}
         run: |
           set -euo pipefail
+          # static-media-assets.json is gitignored; generate before typecheck (same as CI)
+          node scripts/generate-static-assets-manifest.mjs
           pnpm check
           DEPLOY_LOG=$(pnpm deploy:production 2>&1 | tee /dev/stderr)
           RESULT_LINE=$(echo "$DEPLOY_LOG" | grep '\[deploy:production\] Result:' | tail -n1)
