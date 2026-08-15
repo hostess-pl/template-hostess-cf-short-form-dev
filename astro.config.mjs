@@ -76,6 +76,12 @@ export default defineConfig({
       RESEND_API_KEY: envField.string({ context: 'server', access: 'secret', optional: true, default: '' }),
       RESEND_FROM: envField.string({ context: 'server', access: 'secret', optional: true, default: '' }),
       RESEND_TO: envField.string({ context: 'server', access: 'secret', optional: true, default: '' }),
+      CMS_OPS_OWNER_EMAILS: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+        default: '',
+      }),
 
       SUPABASE_URL: envField.string({ context: 'server', access: 'secret', optional: true, default: '' }),
       SUPABASE_SERVICE_ROLE_KEY: envField.string({

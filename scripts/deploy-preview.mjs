@@ -497,6 +497,11 @@ const resendTo =
 putSecret('RESEND_API_KEY', resendApiKey, previewName);
 putSecret('RESEND_FROM', resendFrom, previewName);
 putSecret('RESEND_TO', resendTo, previewName);
+const cmsOpsOwnerEmails =
+  process.env.CMS_OPS_OWNER_EMAILS ||
+  envFile.CMS_OPS_OWNER_EMAILS ||
+  '';
+putSecret('CMS_OPS_OWNER_EMAILS', cmsOpsOwnerEmails, previewName);
 if (!resendApiKey) {
   console.warn('[deploy:preview] RESEND_API_KEY not set — contact form will return email service not configured.');
 } else if (!resendTo) {

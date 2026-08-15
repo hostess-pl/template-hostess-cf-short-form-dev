@@ -363,6 +363,8 @@ const resendTo = process.env.RESEND_TO || envFile.RESEND_TO;
 putSecret('RESEND_API_KEY', resendApiKey, workerName);
 putSecret('RESEND_FROM', resendFrom, workerName);
 putSecret('RESEND_TO', resendTo, workerName);
+const cmsOpsOwnerEmails = process.env.CMS_OPS_OWNER_EMAILS || envFile.CMS_OPS_OWNER_EMAILS || '';
+putSecret('CMS_OPS_OWNER_EMAILS', cmsOpsOwnerEmails, workerName);
 
 let cmsSeeded = false;
 let cmsInvited = false;
