@@ -26,6 +26,7 @@ jobs:
         id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           REVIEW_ADMIN_CODE: ${{ secrets.REVIEW_ADMIN_CODE }}
@@ -34,6 +35,10 @@ jobs:
           N8N_REVIEW_COMPLETE_URL: ${{ secrets.N8N_REVIEW_COMPLETE_URL }}
           ANALYTICS_SALT: ${{ secrets.ANALYTICS_SALT }}
           RATE_LIMIT_SALT: ${{ secrets.RATE_LIMIT_SALT }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM: ${{ secrets.RESEND_FROM }}
+          RESEND_TO: ${{ secrets.RESEND_TO }}
+          CMS_OPS_OWNER_EMAILS: ${{ secrets.CMS_OPS_OWNER_EMAILS }}
           PRODUCTION_HOSTNAME: ${{ github.event.client_payload.productionHostname }}
           SUBMISSION_ID: ${{ github.event.client_payload.submissionId }}
           WORKER_NAME: ${{ github.event.client_payload.workerName }}

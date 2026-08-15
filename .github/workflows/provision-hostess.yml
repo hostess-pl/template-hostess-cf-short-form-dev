@@ -53,6 +53,9 @@ jobs:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
           CMS_OPS_OWNER_EMAILS: ${{ secrets.CMS_OPS_OWNER_EMAILS }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM: ${{ secrets.RESEND_FROM }}
+          RESEND_TO: ${{ secrets.RESEND_TO }}
           REVIEW_ADMIN_CODE: ${{ secrets.REVIEW_ADMIN_CODE }}
           REVIEW_AUTH_SALT: ${{ secrets.REVIEW_AUTH_SALT }}
           WORKERS_DEV_SUBDOMAIN: ${{ secrets.WORKERS_DEV_SUBDOMAIN }}
