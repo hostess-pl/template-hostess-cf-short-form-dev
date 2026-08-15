@@ -82,6 +82,11 @@ export type CmsChromeStrings = {
   workEmail: string
   password: string
   emailMagicLink: string
+  otpCode: string
+  verifyOtp: string
+  resendOtp: string
+  invalidOtp: string
+  otpVerifyFailed: string
   signIn: string
   backToSignIn: string
   magicLinkSent: string
@@ -311,22 +316,27 @@ const PL: CmsChromeStrings = {
   themeLight: 'Jasny',
   loginTitle: 'Edytor treści',
   loginLede:
-    'Tylko dla zaproszonych. Użyj linku magicznego (otwórz w tej samej przeglądarce) albo e-mail i hasło po pierwszym logowaniu.',
+    'Tylko dla zaproszonych. Poproś o kod e-mail albo użyj e-mail i hasło po pierwszym logowaniu.',
   loginConfigError: 'Klucze publiczne Supabase nie są skonfigurowane w tym środowisku.',
-  loginAuthError: 'Link logowania wygasł lub jest nieprawidłowy. Poproś o nowy.',
+  loginAuthError: 'Sesja logowania wygasła lub jest nieprawidłowa. Poproś o nowy kod.',
   loginInviteError: 'To konto nie ma zaproszenia do edycji tej strony.',
   signInMethod: 'Sposób logowania',
-  magicLinkTab: 'Link magiczny',
+  magicLinkTab: 'Kod e-mail',
   passwordTab: 'E-mail i hasło',
   workEmail: 'E-mail służbowy',
   password: 'Hasło',
-  emailMagicLink: 'Wyślij link logowania',
+  emailMagicLink: 'Wyślij kod',
+  otpCode: 'Kod z e-maila',
+  verifyOtp: 'Zaloguj kodem',
+  resendOtp: 'Wyślij kod ponownie',
+  invalidOtp: 'Wpisz 6-cyfrowy kod z e-maila.',
+  otpVerifyFailed: 'Kod nieprawidłowy lub wygasł. Sprawdź e-mail albo wyślij nowy kod.',
   signIn: 'Zaloguj',
   backToSignIn: 'Wróć do logowania',
   magicLinkSent:
-    'Jeśli masz zaproszenie, sprawdź skrzynkę. Otwórz link w tej samej przeglądarce w ciągu około godziny. Link magiczny nie zmienia hasła.',
-  magicLinkWait: 'Odczekaj chwilę przed kolejną prośbą o link.',
-  couldNotSendLink: 'Nie udało się wysłać linku',
+    'Sprawdź skrzynkę i wpisz 6-cyfrowy kod tutaj (działa też z Outlooka). Kod nie zmienia hasła i wygasa w ciągu około godziny.',
+  magicLinkWait: 'Odczekaj chwilę przed kolejną prośbą o kod.',
+  couldNotSendLink: 'Nie udało się wysłać kodu',
   authNotConfigured: 'Logowanie nie jest skonfigurowane',
   emailRateLimited:
     'Limit wysyłki e-mail. Odczekaj około godziny albo poproś administratora o bezpośredni link (cms:login-link).',
@@ -335,7 +345,7 @@ const PL: CmsChromeStrings = {
   passwordsMismatch: 'Hasła nie są takie same.',
   passwordSaveFailed: 'Nie udało się zapisać hasła',
   setPasswordHint:
-    'Po pierwszym logowaniu ustaw hasło, żeby wracać przez e-mail i hasło albo link magiczny.',
+    'Po pierwszym logowaniu ustaw hasło, żeby wracać przez e-mail i hasło albo kod e-mail.',
   analyticsTitle: 'Analityka',
   analyticsLede: 'Metryki własne z ostatnich 30 dni (Pro). Zbierane od momentu publikacji portfolio.',
   analyticsLoading: 'Ładowanie analityki…',
@@ -549,22 +559,27 @@ const EN: CmsChromeStrings = {
   themeLight: 'Light',
   loginTitle: 'Content editor',
   loginLede:
-    'Invite-only. Use a magic link (open it in this same browser) or email + password after your first sign-in.',
+    'Invite-only. Request an email code, or use email + password after your first sign-in.',
   loginConfigError: 'Supabase public keys are not configured on this environment.',
-  loginAuthError: 'Sign-in link expired or invalid. Request a new one.',
+  loginAuthError: 'Sign-in session expired or invalid. Request a new code.',
   loginInviteError: 'This account is not invited to edit this site.',
   signInMethod: 'Sign-in method',
-  magicLinkTab: 'Magic link',
+  magicLinkTab: 'Email code',
   passwordTab: 'Email + password',
   workEmail: 'Work email',
   password: 'Password',
-  emailMagicLink: 'Email me a sign-in link',
+  emailMagicLink: 'Send code',
+  otpCode: 'Code from email',
+  verifyOtp: 'Sign in with code',
+  resendOtp: 'Resend code',
+  invalidOtp: 'Enter the 6-digit code from your email.',
+  otpVerifyFailed: 'Code invalid or expired. Check your email or request a new code.',
   signIn: 'Sign in',
   backToSignIn: 'Back to sign in',
   magicLinkSent:
-    'If you are invited, check your inbox. Open the link in this same browser within about an hour. Magic link does not change your password.',
-  magicLinkWait: 'Please wait before requesting another link.',
-  couldNotSendLink: 'Could not send link',
+    'Check your inbox and enter the 6-digit code here (works with Outlook). The code does not change your password and expires in about an hour.',
+  magicLinkWait: 'Please wait before requesting another code.',
+  couldNotSendLink: 'Could not send code',
   authNotConfigured: 'Auth is not configured',
   emailRateLimited:
     'Email rate limit reached. Wait about an hour, or ask an admin for a direct sign-in link (cms:login-link).',
@@ -573,7 +588,7 @@ const EN: CmsChromeStrings = {
   passwordsMismatch: 'Passwords do not match.',
   passwordSaveFailed: 'Could not save password',
   setPasswordHint:
-    'After your first sign-in, save a password so you can return with email + password or a magic link.',
+    'After your first sign-in, save a password so you can return with email + password or an email code.',
   analyticsTitle: 'Analytics',
   analyticsLede: 'First-party metrics for the last 30 days (Pro). Collection starts after you publish.',
   analyticsLoading: 'Loading analytics…',
