@@ -27,6 +27,11 @@ export type DashboardBlock = {
   height: 'xs' | 'sm' | 'md' | 'lg'
 }
 
+export type CmsNavOptions = {
+  includeAnalytics?: boolean
+  includeDashboard?: boolean
+}
+
 export function navGroupLabels(t: CmsChromeStrings): Record<CmsNavGroup, string> {
   return {
     home: t.overview,
@@ -37,9 +42,11 @@ export function navGroupLabels(t: CmsChromeStrings): Record<CmsNavGroup, string>
   }
 }
 
-export function buildCmsNav(t: CmsChromeStrings, options: { includeAnalytics?: boolean } = {}): CmsNavItem[] {
+export function buildCmsNav(t: CmsChromeStrings, options: CmsNavOptions = {}): CmsNavItem[] {
   return [
-    { id: 'dashboard', label: t.dashboard, group: 'home' },
+    ...(options.includeDashboard !== false
+      ? [{ id: 'dashboard' as const, label: t.dashboard, group: 'home' as const }]
+      : []),
     ...(options.includeAnalytics ? [{ id: 'analytics' as const, label: t.analytics, group: 'insights' as const }] : []),
     { id: 'assets', label: t.assets, group: 'media' },
     { id: 'hero', label: t.hero, group: 'content' },

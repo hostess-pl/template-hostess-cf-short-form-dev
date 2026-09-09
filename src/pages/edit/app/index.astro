@@ -27,6 +27,7 @@ if (site) {
 }
 
 const plan = site?.plan === 'pro' ? 'pro' : 'free'
+const hasPublished = site?.portfolio_status === 'published' || Boolean(site?.published_at)
 const email = user.email ?? 'editor'
 const needsPasswordSetup = user.user_metadata?.cms_password_set !== true
 const supabaseUrl = getPublicSupabaseUrl()
@@ -72,6 +73,7 @@ const recovery = Astro.url.searchParams.get('recovery') === '1'
           supabaseUrl={supabaseUrl}
           supabaseAnonKey={supabaseAnonKey}
           initialSection={section}
+          hasPublished={hasPublished}
         />
       )
     }

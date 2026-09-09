@@ -4,6 +4,7 @@
 import {
   buildCmsNav,
   buildDashboardBlocks,
+  type CmsNavOptions,
   type CmsNavItem,
   type DashboardBlock,
 } from '@/lib/cms/nav'
@@ -14,7 +15,7 @@ export const CMS_DOCUMENT_SECTION = 'document'
 
 export function getCmsNav(
   chromeLocale: CmsChromeLocale = 'pl',
-  options: { includeAnalytics?: boolean } = {},
+  options: CmsNavOptions = {},
 ): CmsNavItem[] {
   return buildCmsNav(chromeStrings(chromeLocale), options)
 }

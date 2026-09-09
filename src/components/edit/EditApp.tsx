@@ -31,6 +31,7 @@ type Props = {
   supabaseUrl: string
   supabaseAnonKey: string
   initialSection?: string
+  hasPublished: boolean
 }
 
 const CONTENT_SECTIONS = new Set<CmsSectionId>([
@@ -75,20 +76,28 @@ export function EditApp({
   supabaseUrl,
   supabaseAnonKey,
   initialSection = 'dashboard',
+  hasPublished,
 }: Props) {
   const { theme, toggleTheme } = useCmsTheme()
   const [chromeLocale, setChromeLocale] = useState<CmsChromeLocale>('pl')
   const [contentLocale, setContentLocale] = useState<ContentLocale>('pl')
   const t = useMemo(() => chromeStrings(chromeLocale), [chromeLocale])
   const includeAnalytics = plan === 'pro'
-  const nav = useMemo(() => getCmsNav(chromeLocale, { includeAnalytics }), [chromeLocale, includeAnalytics])
+  const nav = useMemo(
+    () => getCmsNav(chromeLocale, { includeAnalytics, includeDashboard: !hasPublished }),
+    [chromeLocale, hasPublished, includeAnalytics],
+  )
   const groups = (['home', 'insights', 'media', 'content', 'account'] as CmsNavGroup[]).filter((g) =>
     nav.some((item) => item.group === g),
   )
   const groupLabels = navGroupLabels(t)
 
   const [section, setSection] = useState<CmsSectionId>(
-    nav.some((n) => n.id === initialSection) ? (initialSection as CmsSectionId) : 'dashboard',
+    nav.some((n) => n.id === initialSection)
+      ? (initialSection as CmsSectionId)
+      : hasPublished
+        ? 'hero'
+        : 'dashboard',
   )
   const [document, setDocument] = useState<Record<string, unknown> | null>(null)
   const [savedSnapshot, setSavedSnapshot] = useState<Record<string, unknown> | null>(null)
