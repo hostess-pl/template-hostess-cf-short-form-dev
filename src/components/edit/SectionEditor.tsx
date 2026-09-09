@@ -189,6 +189,7 @@ function MediaEditor({
   const kind = field === 'videoFile' ? 'video' : 'image'
   const preview = resolveMediaPreviewUrl(value, kind)
   const video = kind === 'video' || isVideoUrl(preview)
+  const pickerLabel = kind === 'image' ? t.addPhoto : t.chooseAsset
 
   return (
     <div className="cms-media-card">
@@ -196,7 +197,7 @@ function MediaEditor({
         type="button"
         className="cms-media-card__frame"
         onClick={() => setPickerOpen(true)}
-        aria-label={t.chooseAsset}
+        aria-label={pickerLabel}
       >
         {preview ? (
           video ? (
@@ -210,7 +211,7 @@ function MediaEditor({
       </button>
       <div className="cms-media-card__actions">
         <button type="button" className="cms-btn cms-btn-primary" onClick={() => setPickerOpen(true)}>
-          {t.chooseAsset}
+          {pickerLabel}
         </button>
         {value ? (
           <button type="button" className="cms-btn cms-btn-ghost" onClick={() => onChange('')}>
@@ -238,6 +239,26 @@ function MediaEditor({
         onSelect={(url) => onChange(normalizePickedMediaValue(url, field) || filenameFromMediaUrl(url))}
       />
     </div>
+  )
+}
+
+function PlusIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className="shrink-0"
+    >
+      <path
+        d="M12 5v14M5 12h14"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
   )
 }
 
@@ -415,16 +436,6 @@ export function SectionEditor({
       <div className="mx-auto max-w-2xl space-y-8">
         {localeBar}
         <section className="space-y-4">
-          <h3 className="font-display text-lg font-semibold text-[var(--cms-ink)]">
-            {t.subsectionSectionLabels}
-          </h3>
-          <Field label={t.fieldAboutLabel}>
-            <TextInput
-              placeholder={ph('aboutLabel', t.phAboutLabel)}
-              value={raw.aboutLabel || ''}
-              onChange={(aboutLabel) => patch({ aboutLabel })}
-            />
-          </Field>
           <Field label={t.fieldAboutTitle}>
             <TextInput
               placeholder={ph('aboutTitle', t.phAboutTitle)}
@@ -644,24 +655,6 @@ export function SectionEditor({
               }
             />
           </Field>
-          <Field label={t.fieldLanguageCompetencies}>
-            <TextInput
-              placeholder={t.fieldLanguageCompetencies}
-              value={(Array.isArray(document.languageCompetencies)
-                ? (document.languageCompetencies as string[])
-                : []
-              ).join(', ')}
-              onChange={(v) =>
-                onChange({
-                  ...document,
-                  languageCompetencies: v
-                    .split(',')
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                })
-              }
-            />
-          </Field>
         </section>
 
         <section className="space-y-3">
@@ -741,13 +734,11 @@ export function SectionEditor({
   }
 
   if (section === 'experience') {
-    const { raw, patch, ph } = copyEditorHelpers(document, contentLocale, onChange)
-    const experience = (document.experience as Record<string, unknown>) || {}
     const employment = Array.isArray(document.employment)
       ? [...(document.employment as Record<string, unknown>[])]
       : []
     const jobLabels = {
-      title: t.fieldTitle,
+      title: t.fieldEmploymentTitle,
       company: t.fieldCompany,
       startDate: t.fieldStart,
       endDate: t.fieldEnd,
@@ -755,55 +746,6 @@ export function SectionEditor({
     return (
       <div className="mx-auto max-w-2xl space-y-8">
         {localeBar}
-        <section className="space-y-4">
-          <h3 className="font-display text-lg font-semibold text-[var(--cms-ink)]">
-            {t.subsectionSectionLabels}
-          </h3>
-          <Field label={t.fieldExperienceLabel}>
-            <TextInput
-              placeholder={ph('experienceLabel', t.phExperienceLabel)}
-              value={raw.experienceLabel || ''}
-              onChange={(experienceLabel) => patch({ experienceLabel })}
-            />
-          </Field>
-          <Field label={t.fieldExperienceTitle}>
-            <TextInput
-              placeholder={ph('experienceTitle', t.phExperienceTitle)}
-              value={raw.experienceTitle || ''}
-              onChange={(experienceTitle) => patch({ experienceTitle })}
-            />
-          </Field>
-        </section>
-        <section className="space-y-3">
-          <h3 className="font-display text-lg font-semibold text-[var(--cms-ink)]">
-            {t.subsectionExperienceMeta}
-          </h3>
-          <Field label={t.fieldSince}>
-            <TextInput
-              placeholder={t.phSince}
-              value={String(experience.since || '')}
-              onChange={(since) => onChange({ ...document, experience: { ...experience, since } })}
-            />
-          </Field>
-          <Field label={t.fieldBrands}>
-            <TextInput
-              multiline
-              placeholder={t.phBrands}
-              value={String(experience.brands || '')}
-              onChange={(brands) => onChange({ ...document, experience: { ...experience, brands } })}
-            />
-          </Field>
-          <Field label={t.fieldEventTypes}>
-            <TextInput
-              multiline
-              placeholder={t.phEventTypes}
-              value={String(experience.eventTypes || '')}
-              onChange={(eventTypes) =>
-                onChange({ ...document, experience: { ...experience, eventTypes } })
-              }
-            />
-          </Field>
-        </section>
         <section className="space-y-3">
           <h3 className="font-display text-lg font-semibold text-[var(--cms-ink)]">
             {t.subsectionEmployment}
@@ -826,7 +768,7 @@ export function SectionEditor({
                     <TextInput
                       placeholder={
                         key === 'title'
-                          ? t.phTitle
+                          ? t.phEmploymentTitle
                           : key === 'company'
                             ? t.phCompany
                             : key === 'startDate'
@@ -843,10 +785,10 @@ export function SectionEditor({
                   </Field>
                 ))}
               </div>
-              <Field label={t.fieldDescription}>
+              <Field label={t.fieldEmploymentDescription}>
                 <TextInput
                   multiline
-                  placeholder={t.phDescription}
+                  placeholder={t.phEmploymentDescription}
                   value={String(job.description || '')}
                   onChange={(description) => {
                     const next = [...employment]
@@ -939,9 +881,9 @@ export function SectionEditor({
             onMove={(dir) => onChange({ ...document, events: moveItem(events, index, dir) })}
           >
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label={t.fieldTitle}>
+              <Field label={t.fieldPortfolioRole}>
                 <TextInput
-                  placeholder={t.phTitle}
+                  placeholder={t.phPortfolioRole}
                   value={eventText.title}
                   onChange={(title) =>
                     onChange(
@@ -976,10 +918,10 @@ export function SectionEditor({
                 />
               </Field>
             </div>
-            <Field label={t.fieldDescription}>
+            <Field label={t.fieldPortfolioDescription}>
               <TextInput
                 multiline
-                placeholder={t.phDescription}
+                placeholder={t.phPortfolioDescription}
                 value={eventText.description}
                 onChange={(description) =>
                   onChange(
@@ -1052,7 +994,7 @@ export function SectionEditor({
         })}
         <button
           type="button"
-          className="cms-btn cms-btn-ghost"
+          className="cms-btn cms-btn-ghost inline-flex min-h-11 items-center gap-2"
           onClick={() =>
             onChange({
               ...document,
@@ -1070,7 +1012,8 @@ export function SectionEditor({
             })
           }
         >
-          {t.addItem}
+          <PlusIcon />
+          {t.addPortfolioItem}
         </button>
       </div>
     )

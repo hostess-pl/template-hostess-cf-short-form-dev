@@ -217,8 +217,8 @@ export function computePortfolioCompletion(
       weight: 3,
       done: appearanceOk,
       sectionId: 'about',
-      labelPl: 'Uzupełnij dane wyglądu',
-      labelEn: 'Add physical stats',
+      labelPl: 'Dane dotyczące wyglądu',
+      labelEn: 'Appearance details',
       tier: 'boost',
     },
     {

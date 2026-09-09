@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import {
   computePortfolioCompletion,
   shortFormHasBakedHeroDefault,
@@ -6,7 +5,6 @@ import {
 } from '@/lib/cms/portfolioCompletion'
 import { getDashboardBlocks } from '@/cms/adapter'
 import type { CmsChromeLocale } from '@/lib/cms/i18n'
-import { chromeStrings } from '@/lib/cms/i18n'
 
 type Props = {
   onOpenSection: (sectionId: string) => void
@@ -35,7 +33,11 @@ function MilestoneRow({
       <button
         type="button"
         onClick={() => onOpen(task.sectionId)}
-        className="flex w-full items-center gap-3 rounded-md px-1 py-1.5 text-left text-sm text-[var(--cms-ink)] hover:bg-[var(--cms-soft)]"
+        className={`flex min-h-11 w-full items-center gap-3 rounded-[var(--radius)] border px-3 py-2.5 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cms-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--cms-bg)] ${
+          task.done
+            ? 'border-transparent text-[var(--cms-muted)] hover:bg-[var(--cms-soft)]'
+            : 'cursor-pointer border-[var(--cms-line)] bg-[var(--cms-bg-elevated)] text-[var(--cms-ink)] shadow-sm hover:border-[var(--cms-ink)]/25 hover:bg-[var(--cms-soft)] active:bg-[var(--cms-soft)]'
+        }`}
       >
         <span
           className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
@@ -45,85 +47,53 @@ function MilestoneRow({
           }`}
           aria-hidden
         >
-          {task.done ? '✓' : ''}
+          {task.done ? <CheckIcon /> : null}
         </span>
         <span className={`min-w-0 flex-1 ${task.done ? 'text-[var(--cms-muted)] line-through' : ''}`}>
           {isEn ? task.labelEn : task.labelPl}
         </span>
-        {!task.done ? (
-          <span className="shrink-0 text-[11px] font-semibold text-[var(--cms-muted)]">+{task.weight}</span>
-        ) : null}
+        {!task.done ? <ChevronRightIcon /> : null}
       </button>
     </li>
   )
 }
 
-function InsightsTeaser({
-  t,
-  isEn,
-  onOpenAnalytics,
-}: {
-  t: ReturnType<typeof chromeStrings>
-  isEn: boolean
-  onOpenAnalytics: () => void
-}) {
-  const [views, setViews] = useState<number | null>(null)
-  const [draft, setDraft] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      try {
-        const res = await fetch('/api/edit/analytics/summary')
-        const json = (await res.json()) as {
-          summary?: { page_views?: number }
-          portfolioStatus?: string
-        }
-        if (!res.ok || cancelled) return
-        setDraft(json.portfolioStatus === 'draft' || json.portfolioStatus === 'suspended')
-        setViews(json.summary?.page_views ?? 0)
-      } catch {
-        if (!cancelled) setViews(null)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  if (views === null) return null
-
+function ChevronRightIcon() {
   return (
-    <button
-      type="button"
-      onClick={onOpenAnalytics}
-      className="mb-6 flex w-full cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--cms-line)] bg-[var(--cms-bg-elevated)] p-4 text-left transition hover:border-[var(--cms-ink)]/20 hover:bg-[var(--cms-soft)]"
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className="shrink-0 text-[var(--cms-muted)]"
     >
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--cms-muted)]">
-          {isEn ? 'Insights' : 'Statystyki'}
-        </p>
-        <p className="mt-1 font-display text-xl font-semibold text-[var(--cms-ink)]">
-          {draft && views === 0
-            ? t.insightsTeaserDraft
-            : `${views} · ${t.insightsTeaser}`}
-        </p>
-      </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0 text-[var(--cms-muted)]">
-        <path
-          d="M9 5l7 7-7 7"
-          stroke="currentColor"
-          strokeWidth="1.75"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </button>
+      <path
+        d="M9 5l7 7-7 7"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="m5 12 4 4L19 6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
 
 export function EditDashboard({ onOpenSection, chromeLocale = 'pl', document = null }: Props) {
-  const t = chromeStrings(chromeLocale)
   const blocks = getDashboardBlocks(chromeLocale)
   const completion = computePortfolioCompletion(document, {
     hasBakedHero: shortFormHasBakedHeroDefault(),
@@ -135,30 +105,32 @@ export function EditDashboard({ onOpenSection, chromeLocale = 'pl', document = n
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mb-6">
-        <h2 className="font-display text-2xl font-semibold tracking-tight text-[var(--cms-ink)]">
-          {t.dashboard}
-        </h2>
-        <p className="mt-1 text-sm text-[var(--cms-muted)]">{t.dashboardHint}</p>
-      </div>
-
-      <InsightsTeaser t={t} isEn={isEn} onOpenAnalytics={() => onOpenSection('analytics')} />
-
       <div className="mb-8 rounded-[var(--radius-lg)] border border-[var(--cms-line)] bg-[var(--cms-bg)] p-4 shadow-[var(--cms-shadow)] sm:p-6">
-        <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--cms-muted)]">
-              {isEn ? 'Portfolio strength' : 'Siła portfolio'}
+              {isEn ? 'Complete your portfolio' : 'Dokończ swoje portfolio'}
             </p>
-            <p className="mt-1 font-display text-3xl font-semibold text-[var(--cms-ink)]">{pct}%</p>
+            <p className="mt-1 font-display text-3xl font-semibold text-[var(--cms-ink)]">
+              {pct}% {isEn ? 'complete' : 'gotowe'}
+            </p>
           </div>
           <p className="text-sm text-[var(--cms-muted)]">
-            {doneCount}/{taskCount} {isEn ? 'done' : 'gotowe'}
+            {isEn
+              ? `${doneCount} of ${taskCount} steps completed`
+              : `${doneCount} z ${taskCount} kroków ukończonych`}
           </p>
         </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--cms-line)]">
+        <div
+          className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--cms-line)]"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={pct}
+          aria-label={isEn ? 'Portfolio completion' : 'Postęp uzupełniania portfolio'}
+        >
           <div
-            className="h-full rounded-full bg-[var(--cms-ink)] transition-[width] duration-300"
+            className="h-full rounded-full bg-[var(--cms-ink)] transition-[width] duration-300 motion-reduce:transition-none"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -166,20 +138,23 @@ export function EditDashboard({ onOpenSection, chromeLocale = 'pl', document = n
           <button
             type="button"
             onClick={() => onOpenSection(next.sectionId)}
-            className="mt-4 w-full rounded-[var(--radius-md)] border border-[var(--cms-line)] px-4 py-3 text-left transition hover:bg-[var(--cms-soft)]"
+            className="mt-5 flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--cms-line)] bg-[var(--cms-bg-elevated)] p-4 text-left shadow-sm transition-colors hover:border-[var(--cms-ink)]/25 hover:bg-[var(--cms-soft)] active:bg-[var(--cms-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cms-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--cms-bg)]"
           >
-            <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--cms-muted)]">
-              {isEn ? 'Next recommended step' : 'Następny krok'} · +{next.weight}
+            <span className="min-w-0 flex-1">
+              <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--cms-muted)]">
+                {isEn ? 'Your next step' : 'Twój następny krok'}
+              </span>
+              <span className="mt-1 block font-display text-base font-semibold text-[var(--cms-ink)]">
+                {isEn ? next.labelEn : next.labelPl}
+              </span>
             </span>
-            <span className="mt-1 block font-display text-sm font-semibold text-[var(--cms-ink)]">
-              {isEn ? next.labelEn : next.labelPl}
-            </span>
+            <ChevronRightIcon />
           </button>
         ) : (
           <p className="mt-4 text-sm text-[var(--cms-muted)]">
             {isEn
-              ? 'Great — basics look complete. Preview your draft, then publish when ready.'
-              : 'Świetnie — podstawy gotowe. Sprawdź podgląd i opublikuj, gdy będziesz gotowa.'}
+              ? 'Great — your portfolio is complete. Preview it and publish when you are ready.'
+              : 'Świetnie — Twoje portfolio jest kompletne. Sprawdź podgląd i opublikuj, gdy będziesz gotowa.'}
           </p>
         )}
 
@@ -197,8 +172,8 @@ export function EditDashboard({ onOpenSection, chromeLocale = 'pl', document = n
         </p>
         <p className="mt-1 text-xs text-[var(--cms-muted)]">
           {isEn
-            ? 'Optional polish — small lifts that still help clients trust you.'
-            : 'Opcjonalne dopracowanie — małe kroki, które budują zaufanie klientów.'}
+            ? 'This information is not required to publish, but it will help present you better to employers.'
+            : 'Te informacje nie są wymagane do publikacji, ale pomogą lepiej zaprezentować Cię pracodawcom.'}
         </p>
         <ul className="mt-2 space-y-1">
           {boost.map((task) => (
@@ -209,7 +184,7 @@ export function EditDashboard({ onOpenSection, chromeLocale = 'pl', document = n
 
       <div
         className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--cms-line)] bg-[var(--cms-bg)] shadow-[var(--cms-shadow)]"
-        aria-label={t.dashboardAria}
+        aria-label={isEn ? 'Portfolio sections' : 'Sekcje portfolio'}
       >
         <div className="space-y-3 p-4 sm:p-6">
           {blocks.map((block) => (
