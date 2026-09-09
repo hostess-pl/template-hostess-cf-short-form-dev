@@ -287,7 +287,7 @@ export function EditApp({
     setTourStatus('done')
     setNavOpen(false)
     window.requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>('[data-tour="hero-content"] textarea')?.focus()
+      window.document.querySelector<HTMLElement>('[data-tour="hero-content"] textarea')?.focus()
     })
     try {
       window.localStorage.setItem(tourStorageKey, 'done')
