@@ -105,7 +105,10 @@ export function EditDashboard({ onOpenSection, chromeLocale = 'pl', document = n
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mb-8 rounded-[var(--radius-lg)] border border-[var(--cms-line)] bg-[var(--cms-bg)] p-4 shadow-[var(--cms-shadow)] sm:p-6">
+      <div
+        className="mb-8 rounded-[var(--radius-lg)] border border-[var(--cms-line)] bg-[var(--cms-bg)] p-4 shadow-[var(--cms-shadow)] sm:p-6"
+        data-tour="progress"
+      >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--cms-muted)]">

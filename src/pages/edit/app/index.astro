@@ -30,6 +30,8 @@ const plan = site?.plan === 'pro' ? 'pro' : 'free'
 const hasPublished = site?.portfolio_status === 'published' || Boolean(site?.published_at)
 const email = user.email ?? 'editor'
 const needsPasswordSetup = user.user_metadata?.cms_password_set !== true
+const needsOnboardingTour = !hasPublished && user.user_metadata?.cms_onboarding_v1_completed !== true
+const siteSlug = String(site?.slug || '').trim().toLowerCase()
 const supabaseUrl = getPublicSupabaseUrl()
 const supabaseAnonKey = getPublicSupabaseAnonKey()
 const section = Astro.url.searchParams.get('section') ?? 'dashboard'
@@ -74,6 +76,8 @@ const recovery = Astro.url.searchParams.get('recovery') === '1'
           supabaseAnonKey={supabaseAnonKey}
           initialSection={section}
           hasPublished={hasPublished}
+          needsOnboardingTour={needsOnboardingTour}
+          siteSlug={siteSlug}
         />
       )
     }

@@ -25,10 +25,11 @@ const copy =
   locale === 'en'
     ? {
         title: 'Working portfolio',
-        privacy: '👀 Only you can see this version. Publish your portfolio to share it with agencies.',
+        privacy: 'Only you can see this version. Publish your portfolio to share it with agencies.',
         bodyDefault: 'Finish the highlights, then publish when you are ready.',
-        strength: 'Portfolio strength',
-        next: 'Next tip',
+        strength: 'Complete your portfolio',
+        complete: 'complete',
+        next: 'Your next step',
         edit: 'Continue editing',
         publish: 'Publish',
         custom: 'Custom changes (soon)',
@@ -42,17 +43,20 @@ const copy =
         modalCancel: 'Not yet',
         eaTitle: 'Free portfolio',
         eaBody: 'We build the first 20 portfolios completely free. After you publish, you reserve your spot.',
-        eaCta: '👉 Finish your profile and tap Publish.',
+        eaCta: 'Finish your profile and tap Publish.',
         eaSpotsRemaining: 'Only {n} of {cap} spots left.',
         eaFinished: 'Promotion ended (20/20). Your working version stays private until you publish.',
         eaLoading: 'Checking free spots…',
+        more: 'More',
+        less: 'Less',
       }
     : {
         title: 'Wersja robocza portfolio',
-        privacy: '👀 Tylko Ty widzisz tę wersję. Opublikuj portfolio, aby udostępnić je agencjom.',
+        privacy: 'Tylko Ty widzisz tę wersję. Opublikuj portfolio, aby udostępnić je agencjom.',
         bodyDefault: 'Domknij najważniejsze punkty i opublikuj, gdy będziesz gotowa.',
-        strength: 'Siła portfolio',
-        next: 'Następny krok',
+        strength: 'Dokończ swoje portfolio',
+        complete: 'gotowe',
+        next: 'Twój następny krok',
         edit: 'Kontynuuj edycję',
         publish: 'Opublikuj',
         custom: 'Zmiany wizualne (wkrótce)',
@@ -66,10 +70,12 @@ const copy =
         modalCancel: 'Jeszcze nie',
         eaTitle: 'Darmowe portfolio',
         eaBody: 'Tworzymy pierwsze 20 portfolio całkowicie za darmo. Po publikacji rezerwujesz swoje miejsce.',
-        eaCta: '👉 Uzupełnij profil i kliknij Opublikuj.',
+        eaCta: 'Uzupełnij profil i kliknij Opublikuj.',
         eaSpotsRemaining: 'Zostało tylko {n} z {cap} miejsc.',
         eaFinished: 'Promocja zakończona (20/20). Roboczą wersję nadal widzisz tylko Ty — aż opublikujesz.',
         eaLoading: 'Sprawdzam wolne miejsca…',
+        more: 'Więcej',
+        less: 'Mniej',
       }
 ---
 
@@ -84,54 +90,90 @@ const copy =
 >
   <div class="portfolio-draft-banner__inner">
     <div class="portfolio-draft-banner__text">
-      <p class="portfolio-draft-banner__privacy">{copy.privacy}</p>
-      <p class="portfolio-draft-banner__title">{copy.title}</p>
-      <p class="portfolio-draft-banner__body" id="portfolio-draft-body">{copy.bodyDefault}</p>
-
-      <div
-        id="portfolio-ea-card"
-        class="portfolio-ea-card"
-        hidden
-        data-title={copy.eaTitle}
-        data-body={copy.eaBody}
-        data-cta={copy.eaCta}
-        data-spots-remaining={copy.eaSpotsRemaining}
-        data-finished={copy.eaFinished}
-        data-loading={copy.eaLoading}
-      >
-        <p class="portfolio-ea-card__eyebrow">
-          <span class="portfolio-ea-card__icon" aria-hidden="true">🎁</span>
-          <span id="portfolio-ea-title">{copy.eaTitle}</span>
-        </p>
-        <p class="portfolio-ea-card__body" id="portfolio-ea-body">{copy.eaLoading}</p>
-        <p class="portfolio-ea-card__spots" id="portfolio-ea-spots" hidden></p>
-        <p class="portfolio-ea-card__cta" id="portfolio-ea-cta" hidden>{copy.eaCta}</p>
+      <div class="portfolio-draft-banner__summary">
+        <div class="portfolio-draft-banner__summary-copy">
+          <p class="portfolio-draft-banner__privacy">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="1.75" />
+              <circle cx="12" cy="12" r="2.75" stroke="currentColor" stroke-width="1.75" />
+            </svg>
+            <span>{copy.privacy}</span>
+          </p>
+          <p class="portfolio-draft-banner__title">{copy.title}</p>
+        </div>
+        <button
+          type="button"
+          class="portfolio-draft-banner__toggle"
+          id="portfolio-draft-toggle"
+          aria-expanded="false"
+          aria-controls="portfolio-draft-details"
+          data-more={copy.more}
+          data-less={copy.less}
+        >
+          <span>{copy.more}</span>
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m7 9 5 5 5-5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
       </div>
 
-      {
-        completion ? (
-          <div class="portfolio-draft-banner__progress">
-            <div class="portfolio-draft-banner__progress-meta">
-              <span>{copy.strength}</span>
-              <strong>{pct}%</strong>
+      <div class="portfolio-draft-banner__details" id="portfolio-draft-details" data-expanded="false">
+        <p class="portfolio-draft-banner__body" id="portfolio-draft-body">{copy.bodyDefault}</p>
+
+        <div
+          id="portfolio-ea-card"
+          class="portfolio-ea-card"
+          hidden
+          data-title={copy.eaTitle}
+          data-body={copy.eaBody}
+          data-cta={copy.eaCta}
+          data-spots-remaining={copy.eaSpotsRemaining}
+          data-finished={copy.eaFinished}
+          data-loading={copy.eaLoading}
+        >
+          <p class="portfolio-ea-card__eyebrow">
+            <svg class="portfolio-ea-card__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 10h16v10H4V10Zm-1-4h18v4H3V6Zm9 0v14" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" />
+              <path d="M12 6H8.75A2.25 2.25 0 1 1 11 3.75V6Zm0 0h3.25A2.25 2.25 0 1 0 13 3.75V6Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" />
+            </svg>
+            <span id="portfolio-ea-title">{copy.eaTitle}</span>
+          </p>
+          <p class="portfolio-ea-card__body" id="portfolio-ea-body">{copy.eaLoading}</p>
+          <p class="portfolio-ea-card__spots" id="portfolio-ea-spots" hidden></p>
+          <p class="portfolio-ea-card__cta" id="portfolio-ea-cta" hidden>{copy.eaCta}</p>
+        </div>
+
+        {
+          completion ? (
+            <div class="portfolio-draft-banner__progress">
+              <div class="portfolio-draft-banner__progress-meta">
+                <span>{copy.strength}</span>
+                <strong>{pct}% {copy.complete}</strong>
+              </div>
+              <div
+                class="portfolio-draft-banner__bar"
+                role="progressbar"
+                aria-label={copy.strength}
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow={String(pct)}
+              >
+                <div class="portfolio-draft-banner__bar-fill" style={`width:${pct}%`} />
+              </div>
+              {
+                next ? (
+                  <a class="portfolio-draft-banner__next" href={nextHref}>
+                    <span class="portfolio-draft-banner__next-label">{copy.next}</span>
+                    <span class="portfolio-draft-banner__next-task">{nextLabel}</span>
+                  </a>
+                ) : (
+                  <p class="portfolio-draft-banner__ready">{copy.ready}</p>
+                )
+              }
             </div>
-            <div class="portfolio-draft-banner__bar" aria-hidden="true">
-              <div class="portfolio-draft-banner__bar-fill" style={`width:${pct}%`} />
-            </div>
-            {
-              next ? (
-                <a class="portfolio-draft-banner__next" href={nextHref}>
-                  <span class="portfolio-draft-banner__next-label">{copy.next}</span>
-                  <span class="portfolio-draft-banner__next-task">{nextLabel}</span>
-                  <span class="portfolio-draft-banner__next-weight">+{next.weight}</span>
-                </a>
-              ) : (
-                <p class="portfolio-draft-banner__ready">{copy.ready}</p>
-              )
-            }
-          </div>
-        ) : null
-      }
+          ) : null
+        }
+      </div>
     </div>
     <div class="portfolio-draft-banner__actions">
       <a class="portfolio-draft-banner__btn portfolio-draft-banner__btn--ghost" href={nextHref}>
@@ -149,7 +191,7 @@ const copy =
       >
         {copy.publish}
       </button>
-      <button type="button" class="portfolio-draft-banner__btn portfolio-draft-banner__btn--ghost" disabled>
+      <button type="button" class="portfolio-draft-banner__btn portfolio-draft-banner__btn--ghost portfolio-draft-banner__btn--custom" disabled>
         {copy.custom}
       </button>
     </div>
@@ -204,12 +246,40 @@ const copy =
     align-items: flex-start;
     justify-content: space-between;
   }
+  .portfolio-draft-banner__text {
+    min-width: 0;
+    flex: 1 1 32rem;
+  }
+  .portfolio-draft-banner__summary {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .portfolio-draft-banner__summary-copy {
+    min-width: 0;
+  }
   .portfolio-draft-banner__privacy {
     margin: 0 0 0.45rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
     font-size: 0.78rem;
     line-height: 1.4;
     color: #e8d5a8;
     max-width: 36rem;
+  }
+  .portfolio-draft-banner__privacy svg {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    margin-top: 0.05rem;
+  }
+  .portfolio-draft-banner__toggle {
+    display: none;
+  }
+  .portfolio-draft-banner__details {
+    display: contents;
   }
   .portfolio-draft-banner__title {
     margin: 0;
@@ -243,7 +313,9 @@ const copy =
     font-weight: 650;
   }
   .portfolio-ea-card__icon {
-    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
   }
   .portfolio-ea-card__body {
     margin: 0.35rem 0 0;
@@ -322,10 +394,6 @@ const copy =
     font-size: 0.85rem;
     font-weight: 600;
   }
-  .portfolio-draft-banner__next-weight {
-    font-size: 0.7rem;
-    opacity: 0.7;
-  }
   .portfolio-draft-banner__ready {
     margin: 0.55rem 0 0;
     font-size: 0.8rem;
@@ -345,6 +413,17 @@ const copy =
     cursor: pointer;
     text-decoration: none;
     color: inherit;
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+  }
+  .portfolio-draft-banner__btn:focus-visible,
+  .portfolio-draft-banner__toggle:focus-visible,
+  .portfolio-draft-banner__next:focus-visible {
+    outline: 2px solid #f5f5f5;
+    outline-offset: 3px;
   }
   .portfolio-draft-banner__btn:disabled {
     opacity: 0.45;
@@ -356,6 +435,85 @@ const copy =
   }
   .portfolio-draft-banner__btn--ghost {
     border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  @media (max-width: 639px) {
+    .portfolio-draft-banner__inner {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.625rem;
+      padding: 0.625rem 0.75rem max(0.625rem, env(safe-area-inset-bottom, 0px));
+    }
+    .portfolio-draft-banner__privacy {
+      margin-bottom: 0.25rem;
+      font-size: 0.72rem;
+      line-height: 1.32;
+    }
+    .portfolio-draft-banner__title {
+      font-size: 0.875rem;
+    }
+    .portfolio-draft-banner__toggle {
+      display: inline-flex;
+      min-width: 4.75rem;
+      min-height: 2.75rem;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 999px;
+      background: transparent;
+      color: inherit;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .portfolio-draft-banner__toggle svg {
+      width: 0.9rem;
+      height: 0.9rem;
+      transition: transform 0.18s ease;
+    }
+    .portfolio-draft-banner__toggle[aria-expanded='true'] svg {
+      transform: rotate(180deg);
+    }
+    .portfolio-draft-banner__details {
+      display: block;
+    }
+    .portfolio-draft-banner__details[data-expanded='false'] {
+      display: none;
+    }
+    .portfolio-draft-banner__body {
+      margin-top: 0.5rem;
+    }
+    .portfolio-ea-card,
+    .portfolio-draft-banner__progress {
+      max-width: none;
+    }
+    .portfolio-ea-card {
+      margin-top: 0.6rem;
+    }
+    .portfolio-draft-banner__actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      width: 100%;
+    }
+    .portfolio-draft-banner__btn {
+      width: 100%;
+      padding: 0.5rem 0.65rem;
+      font-size: 0.77rem;
+      text-align: center;
+    }
+    .portfolio-draft-banner__btn--custom {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .portfolio-draft-banner__bar-fill,
+    .portfolio-ea-card,
+    .portfolio-draft-banner__toggle svg {
+      transition: none;
+    }
   }
 
   .portfolio-publish-modal {
@@ -443,6 +601,22 @@ const copy =
   window.addEventListener('resize', syncBannerOffset)
   if (typeof ResizeObserver !== 'undefined' && banner) {
     new ResizeObserver(syncBannerOffset).observe(banner)
+  }
+
+  const details = document.getElementById('portfolio-draft-details')
+  const toggle = document.getElementById('portfolio-draft-toggle')
+  if (details && toggle) {
+    toggle.addEventListener('click', () => {
+      const expanded = toggle.getAttribute('aria-expanded') === 'true'
+      const nextExpanded = !expanded
+      toggle.setAttribute('aria-expanded', String(nextExpanded))
+      details.setAttribute('data-expanded', String(nextExpanded))
+      const label = toggle.querySelector('span')
+      if (label) {
+        label.textContent = toggle.getAttribute(nextExpanded ? 'data-less' : 'data-more') || ''
+      }
+      syncBannerOffset()
+    })
   }
 
   const eaCard = document.getElementById('portfolio-ea-card')

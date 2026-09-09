@@ -404,14 +404,16 @@ export function SectionEditor({
             onChange={(greeting) => patch({ greeting })}
           />
         </Field>
-        <Field label={t.fieldProfileHero}>
-          <TextInput
-            multiline
-            placeholder={ph('profile', t.phProfileHero)}
-            value={raw.profile || ''}
-            onChange={(profile) => patch({ profile })}
-          />
-        </Field>
+        <div data-tour="hero-content">
+          <Field label={t.fieldProfileHero}>
+            <TextInput
+              multiline
+              placeholder={ph('profile', t.phProfileHero)}
+              value={raw.profile || ''}
+              onChange={(profile) => patch({ profile })}
+            />
+          </Field>
+        </div>
       </div>
     )
   }
