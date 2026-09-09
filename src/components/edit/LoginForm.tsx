@@ -8,6 +8,10 @@ import {
   type CmsChromeLocale,
   type CmsChromeStrings,
 } from '@/lib/cms/i18n'
+import {
+  readPreferredLoginMethod,
+  storePreferredLoginMethod,
+} from '@/lib/cms/loginPreference'
 import { useCmsTheme } from '@/lib/cms/theme'
 import '@/styles/edit-cms.css'
 
@@ -18,6 +22,13 @@ type Props = {
 }
 
 type Mode = 'otp' | 'password' | 'forgot'
+
+type LoginFormProps = Props & {
+  mode: Mode
+  otpSent: boolean
+  onModeChange: (mode: Mode) => void
+  onOtpSentChange: (sent: boolean) => void
+}
 
 const OTP_RE = /^\d{6}$/
 
@@ -31,12 +42,18 @@ function isAuthRateLimited(message: string): boolean {
   )
 }
 
-export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
-  const [mode, setMode] = useState<Mode>('otp')
+export function LoginForm({
+  supabaseUrl,
+  supabaseAnonKey,
+  t,
+  mode,
+  otpSent,
+  onModeChange,
+  onOtpSentChange,
+}: LoginFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [otp, setOtp] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
   const [message, setMessage] = useState('')
 
@@ -86,7 +103,7 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
       await requestOtpInvite()
       await sendOtpEmail()
       setOtp('')
-      setOtpSent(true)
+      onOtpSentChange(true)
       setStatus('sent')
       setMessage(t.magicLinkSent)
     } catch (error) {
@@ -124,7 +141,7 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
       await requestOtpInvite()
       await sendOtpEmail()
       setOtp('')
-      setOtpSent(true)
+      onOtpSentChange(true)
       setStatus('sent')
       setMessage(t.magicLinkSent)
     } catch (error) {
@@ -145,6 +162,7 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
         password,
       })
       if (error) throw error
+      storePreferredLoginMethod('password')
       window.location.assign('/edit/app')
     } catch (error) {
       setStatus('error')
@@ -173,11 +191,11 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
   }
 
   function setTab(next: Mode) {
-    setMode(next)
+    onModeChange(next)
     setStatus('idle')
     setMessage('')
     setOtp('')
-    setOtpSent(false)
+    onOtpSentChange(false)
   }
 
   const otpFormSubmit = otpSent ? onOtpVerify : onOtpRequest
@@ -221,7 +239,7 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="cms-input"
-            placeholder="you@hostesswebs.pl"
+            placeholder={t.emailPlaceholder}
             disabled={mode === 'otp' && otpSent}
           />
         </div>
@@ -258,15 +276,20 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
           </div>
         ) : null}
         <button type="submit" disabled={status === 'loading'} className="cms-btn cms-btn-primary">
-          {status === 'loading'
-            ? '…'
-            : mode === 'otp'
-              ? otpSent
-                ? t.verifyOtp
-                : t.emailMagicLink
-              : mode === 'forgot'
-                ? t.sendReset
-                : t.signIn}
+          {status === 'loading' ? (
+            '…'
+          ) : mode === 'otp' && otpSent ? (
+            <>
+              {t.verifyOtp}
+              <ArrowRightIcon />
+            </>
+          ) : mode === 'otp' ? (
+            t.emailMagicLink
+          ) : mode === 'forgot' ? (
+            t.sendReset
+          ) : (
+            t.signIn
+          )}
         </button>
         {mode === 'otp' && otpSent ? (
           <button
@@ -284,7 +307,7 @@ export function LoginForm({ supabaseUrl, supabaseAnonKey, t }: Props) {
             className="cms-btn cms-btn-ghost"
             disabled={status === 'loading'}
             onClick={() => {
-              setOtpSent(false)
+              onOtpSentChange(false)
               setOtp('')
               setStatus('idle')
               setMessage('')
@@ -329,17 +352,27 @@ export function LoginShell({
   supabaseUrl,
   supabaseAnonKey,
   productName,
-  templateLabel,
   markSrc,
   configError,
   authError,
   inviteError,
 }: LoginShellProps) {
   const [chromeLocale, setChromeLocale] = useState<CmsChromeLocale>('pl')
+  const [mode, setMode] = useState<Mode>('otp')
+  const [otpSent, setOtpSent] = useState(false)
   const t = useMemo(() => chromeStrings(chromeLocale), [chromeLocale])
+  const loginLede =
+    mode === 'otp'
+      ? otpSent
+        ? t.loginOtpSentLede
+        : t.loginLede
+      : mode === 'forgot'
+        ? t.loginForgotLede
+        : t.loginPasswordLede
 
   useEffect(() => {
     setChromeLocale(readStoredChromeLocale())
+    setMode(readPreferredLoginMethod())
   }, [])
 
   return (
@@ -365,10 +398,8 @@ export function LoginShell({
       <div className="cms-login__brand">
         <img src={markSrc} alt={productName} width="56" height="56" />
         <p className="cms-brand">{productName}</p>
-        <h1 className="cms-login__title">
-          {templateLabel} · {t.loginTitle}
-        </h1>
-        <p className="cms-login__lede">{t.loginLede}</p>
+        <h1 className="cms-login__title">{t.loginTitle}</h1>
+        <p className="cms-login__lede">{loginLede}</p>
       </div>
       {configError ? <p className="cms-login__alert">{t.loginConfigError}</p> : null}
       {authError ? <p className="cms-login__alert">{t.loginAuthError}</p> : null}
@@ -376,9 +407,36 @@ export function LoginShell({
         <p className="cms-login__alert cms-login__alert--invite">{t.loginInviteError}</p>
       ) : null}
       {!configError && supabaseUrl && supabaseAnonKey ? (
-        <LoginForm supabaseUrl={supabaseUrl} supabaseAnonKey={supabaseAnonKey} t={t} />
+        <LoginForm
+          supabaseUrl={supabaseUrl}
+          supabaseAnonKey={supabaseAnonKey}
+          t={t}
+          mode={mode}
+          otpSent={otpSent}
+          onModeChange={setMode}
+          onOtpSentChange={setOtpSent}
+        />
       ) : null}
     </div>
+  )
+}
+
+function ArrowRightIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 12h14" />
+      <path d="m13 6 6 6-6 6" />
+    </svg>
   )
 }
 

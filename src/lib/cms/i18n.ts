@@ -73,6 +73,9 @@ export type CmsChromeStrings = {
   // Login
   loginTitle: string
   loginLede: string
+  loginOtpSentLede: string
+  loginPasswordLede: string
+  loginForgotLede: string
   loginConfigError: string
   loginAuthError: string
   loginInviteError: string
@@ -80,6 +83,7 @@ export type CmsChromeStrings = {
   magicLinkTab: string
   passwordTab: string
   workEmail: string
+  emailPlaceholder: string
   password: string
   emailMagicLink: string
   otpCode: string
@@ -314,27 +318,33 @@ const PL: CmsChromeStrings = {
   themeToLight: 'Włącz tryb jasny',
   themeDark: 'Ciemny',
   themeLight: 'Jasny',
-  loginTitle: 'Edytor treści',
+  loginTitle: 'Zedytuj swoje portfolio',
   loginLede:
-    'Tylko dla zaproszonych. Poproś o kod e-mail albo użyj e-mail i hasło po pierwszym logowaniu.',
+    'Krok 1 z 2. Wpisz swój adres e-mail, na który otrzymałaś wiadomość od Hostess Webs. Wyślemy na niego 6-cyfrowy kod logowania.',
+  loginOtpSentLede:
+    'Krok 2 z 2. Sprawdź swoją skrzynkę e-mail. Wysłaliśmy Ci 6-cyfrowy kod logowania. Wpisz go poniżej, aby przejść do panelu i zedytować swoje portfolio.',
+  loginPasswordLede:
+    'Wpisz swój adres e-mail oraz hasło ustawione po pierwszym logowaniu.',
+  loginForgotLede:
+    'Wpisz swój adres e-mail. Wyślemy Ci bezpieczny link do ustawienia nowego hasła.',
   loginConfigError: 'Klucze publiczne Supabase nie są skonfigurowane w tym środowisku.',
   loginAuthError: 'Sesja logowania wygasła lub jest nieprawidłowa. Poproś o nowy kod.',
   loginInviteError: 'To konto nie ma zaproszenia do edycji tej strony.',
   signInMethod: 'Sposób logowania',
   magicLinkTab: 'Kod e-mail',
   passwordTab: 'E-mail i hasło',
-  workEmail: 'E-mail służbowy',
+  workEmail: 'Twój adres e-mail',
+  emailPlaceholder: 'twoj@email.com',
   password: 'Hasło',
   emailMagicLink: 'Wyślij kod',
   otpCode: 'Kod z e-maila',
-  verifyOtp: 'Zaloguj kodem',
-  resendOtp: 'Wyślij kod ponownie',
+  verifyOtp: 'Przejdź do mojego portfolio',
+  resendOtp: 'Nie otrzymałaś kodu? Wyślij ponownie',
   invalidOtp: 'Wpisz 6-cyfrowy kod z e-maila.',
   otpVerifyFailed: 'Kod nieprawidłowy lub wygasł. Sprawdź e-mail albo wyślij nowy kod.',
   signIn: 'Zaloguj',
   backToSignIn: 'Wróć do logowania',
-  magicLinkSent:
-    'Sprawdź skrzynkę i wpisz 6-cyfrowy kod tutaj (działa też z Outlooka). Kod nie zmienia hasła i wygasa w ciągu około godziny.',
+  magicLinkSent: 'Kod został wysłany.',
   magicLinkWait: 'Odczekaj chwilę przed kolejną prośbą o kod.',
   couldNotSendLink: 'Nie udało się wysłać kodu',
   authNotConfigured: 'Logowanie nie jest skonfigurowane',
@@ -557,27 +567,33 @@ const EN: CmsChromeStrings = {
   themeToLight: 'Switch to light mode',
   themeDark: 'Dark',
   themeLight: 'Light',
-  loginTitle: 'Content editor',
+  loginTitle: 'Edit your portfolio',
   loginLede:
-    'Invite-only. Request an email code, or use email + password after your first sign-in.',
+    'Step 1 of 2. Enter the email address where you received your Hostess Webs message. We’ll send a 6-digit sign-in code to it.',
+  loginOtpSentLede:
+    'Step 2 of 2. Check your email. We sent you a 6-digit sign-in code. Enter it below to open the editor and update your portfolio.',
+  loginPasswordLede:
+    'Enter your email address and the password you set after your first sign-in.',
+  loginForgotLede:
+    'Enter your email address. We’ll send you a secure link to set a new password.',
   loginConfigError: 'Supabase public keys are not configured on this environment.',
   loginAuthError: 'Sign-in session expired or invalid. Request a new code.',
   loginInviteError: 'This account is not invited to edit this site.',
   signInMethod: 'Sign-in method',
   magicLinkTab: 'Email code',
   passwordTab: 'Email + password',
-  workEmail: 'Work email',
+  workEmail: 'Your email address',
+  emailPlaceholder: 'your@email.com',
   password: 'Password',
   emailMagicLink: 'Send code',
   otpCode: 'Code from email',
-  verifyOtp: 'Sign in with code',
-  resendOtp: 'Resend code',
+  verifyOtp: 'Go to my portfolio',
+  resendOtp: "Didn't receive the code? Send again",
   invalidOtp: 'Enter the 6-digit code from your email.',
   otpVerifyFailed: 'Code invalid or expired. Check your email or request a new code.',
   signIn: 'Sign in',
   backToSignIn: 'Back to sign in',
-  magicLinkSent:
-    'Check your inbox and enter the 6-digit code here (works with Outlook). The code does not change your password and expires in about an hour.',
+  magicLinkSent: 'Code sent.',
   magicLinkWait: 'Please wait before requesting another code.',
   couldNotSendLink: 'Could not send code',
   authNotConfigured: 'Auth is not configured',
