@@ -850,3 +850,164 @@ html[data-cms-theme='dark'] .cms-modal-backdrop {
   border-color: color-mix(in srgb, var(--cms-accent) 45%, var(--cms-line));
   color: var(--cms-ink);
 }
+
+/* First-login CMS walkthrough */
+.cms-tour-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  cursor: default;
+}
+
+.cms-tour-spotlight {
+  position: fixed;
+  z-index: 111;
+  pointer-events: none;
+  border: 2px solid var(--cms-accent);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 0 9999px color-mix(in srgb, #1c1614 58%, transparent);
+  transition: inset 0.2s ease, width 0.2s ease, height 0.2s ease;
+}
+
+.cms-tour-card {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 112;
+  width: min(24rem, calc(100vw - 3rem));
+  max-height: calc(100dvh - 3rem);
+  overflow-y: auto;
+  border: 1px solid var(--cms-line);
+  border-radius: var(--radius-lg);
+  background: var(--cms-bg);
+  color: var(--cms-ink);
+  box-shadow: 0 24px 70px color-mix(in srgb, #1c1614 32%, transparent);
+  padding: 1.25rem;
+}
+
+.cms-tour-card[data-placement='top'] {
+  top: 1.5rem;
+  bottom: auto;
+}
+
+.cms-tour-card__meta,
+.cms-tour-card__footer,
+.cms-tour-card__actions {
+  display: flex;
+  align-items: center;
+}
+
+.cms-tour-card__meta {
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--cms-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cms-tour-skip {
+  min-height: 2.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--cms-ink-soft);
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.cms-tour-card__title {
+  margin: 0.75rem 0 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.cms-tour-card__title:focus-visible,
+.cms-tour-skip:focus-visible {
+  outline: 2px solid var(--cms-accent);
+  outline-offset: 3px;
+}
+
+.cms-tour-card__body,
+.cms-tour-card__note {
+  margin: 0.65rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.cms-tour-card__body {
+  color: var(--cms-ink-soft);
+}
+
+.cms-tour-card__note {
+  border-left: 3px solid var(--cms-accent);
+  border-radius: var(--radius);
+  background: var(--cms-accent-soft);
+  color: var(--cms-ink);
+  padding: 0.65rem 0.75rem;
+  font-weight: 600;
+}
+
+.cms-tour-card__footer {
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.15rem;
+}
+
+.cms-tour-card__actions {
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.cms-tour-dots {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.cms-tour-dots span {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--cms-line);
+}
+
+.cms-tour-dots span[data-active='true'] {
+  width: 1rem;
+  background: var(--cms-accent);
+}
+
+@media (max-width: 639px) {
+  .cms-tour-card {
+    right: 0.75rem;
+    bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    width: calc(100vw - 1.5rem);
+    max-height: min(52dvh, 30rem);
+    padding: 1rem;
+  }
+
+  .cms-tour-card[data-placement='top'] {
+    top: max(0.75rem, env(safe-area-inset-top, 0px));
+    bottom: auto;
+  }
+
+  .cms-tour-card__title {
+    font-size: 1.2rem;
+  }
+
+  .cms-tour-card__footer {
+    align-items: flex-end;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cms-tour-spotlight {
+    transition: none;
+  }
+}

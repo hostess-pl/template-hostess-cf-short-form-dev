@@ -7,6 +7,7 @@ import { SetPasswordGate } from '@/components/edit/SetPasswordGate'
 import { ThemeIconButton } from '@/components/edit/LoginThemeToggle'
 import { PublishConfirmModal } from '@/components/edit/PublishConfirmModal'
 import { LocalesToggle } from '@/components/edit/LocalesToggle'
+import { CmsOnboardingTour, type TourEarlyAdopter } from '@/components/edit/CmsOnboardingTour'
 import { getCmsNav } from '@/cms/adapter'
 import {
   availableContentLocales,
@@ -21,6 +22,7 @@ import {
 import { useCmsTheme } from '@/lib/cms/theme'
 import { navGroupLabels, type CmsNavGroup, type CmsSectionId } from '@/lib/cms/nav'
 import { CMS_MARK_SRC, CMS_PRODUCT_NAME, CMS_TEMPLATE_LABEL } from '@/cms/brand'
+import { createSupabaseBrowser } from '@/lib/supabaseAuth'
 import '@/styles/edit-cms.css'
 
 type Props = {
@@ -32,6 +34,8 @@ type Props = {
   supabaseAnonKey: string
   initialSection?: string
   hasPublished: boolean
+  needsOnboardingTour: boolean
+  siteSlug: string
 }
 
 const CONTENT_SECTIONS = new Set<CmsSectionId>([
@@ -77,6 +81,8 @@ export function EditApp({
   supabaseAnonKey,
   initialSection = 'dashboard',
   hasPublished,
+  needsOnboardingTour,
+  siteSlug,
 }: Props) {
   const { theme, toggleTheme } = useCmsTheme()
   const [chromeLocale, setChromeLocale] = useState<CmsChromeLocale>('pl')
@@ -109,6 +115,12 @@ export function EditApp({
   const [passwordGateOpen, setPasswordGateOpen] = useState(needsPasswordSetup || forcePasswordSetup)
   const [navOpen, setNavOpen] = useState(false)
   const [publishOpen, setPublishOpen] = useState(false)
+  const [tourStatus, setTourStatus] = useState<'pending' | 'active' | 'done'>(
+    needsOnboardingTour ? 'pending' : 'done',
+  )
+  const [tourStep, setTourStep] = useState(0)
+  const [tourEarlyAdopter, setTourEarlyAdopter] = useState<TourEarlyAdopter | null>(null)
+  const tourStorageKey = `hw-cms-onboarding-v1:${siteSlug || 'site'}`
 
   useEffect(() => {
     const chrome = readStoredChromeLocale()
@@ -129,6 +141,53 @@ export function EditApp({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [navOpen])
+
+  useEffect(() => {
+    if (tourStatus !== 'pending' || passwordGateOpen || loading || !document) return
+    try {
+      if (window.localStorage.getItem(tourStorageKey) === 'done') {
+        setTourStatus('done')
+        return
+      }
+    } catch {
+      // The server-side metadata flag remains the durable source of truth.
+    }
+    setTourStep(0)
+    setTourStatus('active')
+  }, [document, loading, passwordGateOpen, tourStatus, tourStorageKey])
+
+  useEffect(() => {
+    if (tourStatus !== 'active') return
+    if (tourStep === 0) {
+      setSection('dashboard')
+      setNavOpen(false)
+      return
+    }
+    if (tourStep === 1) {
+      setNavOpen(true)
+      return
+    }
+    setSection('hero')
+    setNavOpen(false)
+  }, [tourStatus, tourStep])
+
+  useEffect(() => {
+    if (tourStatus !== 'active' || tourEarlyAdopter) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const res = await fetch('/api/edit/portfolio/early-adopter', { credentials: 'same-origin' })
+        if (!res.ok) return
+        const data = (await res.json()) as TourEarlyAdopter
+        if (!cancelled) setTourEarlyAdopter(data)
+      } catch {
+        // The promotion note is optional; the tour remains usable without it.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [tourEarlyAdopter, tourStatus])
 
   useEffect(() => {
     if (!navOpen) return
@@ -224,6 +283,26 @@ export function EditApp({
     storeContentLocale(next)
   }
 
+  const completeTour = useCallback(() => {
+    setTourStatus('done')
+    setNavOpen(false)
+    window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>('[data-tour="hero-content"] textarea')?.focus()
+    })
+    try {
+      window.localStorage.setItem(tourStorageKey, 'done')
+    } catch {
+      // Supabase metadata still provides the cross-device preference.
+    }
+    void (async () => {
+      const supabase = createSupabaseBrowser(supabaseUrl, supabaseAnonKey)
+      if (!supabase) return
+      await supabase.auth.updateUser({
+        data: { cms_onboarding_v1_completed: true },
+      })
+    })()
+  }, [supabaseAnonKey, supabaseUrl, tourStorageKey])
+
   return (
     <div className="cms-root cms-shell" data-cms-theme={theme}>
       {passwordGateOpen ? (
@@ -268,6 +347,7 @@ export function EditApp({
                     key={item.id}
                     type="button"
                     data-active={section === item.id}
+                    data-tour={item.id === 'hero' ? 'nav-hero' : undefined}
                     className="cms-nav-item mb-0.5"
                     onClick={() => navigate(item.id)}
                   >
@@ -318,6 +398,7 @@ export function EditApp({
             <button
               type="button"
               className="cms-btn cms-btn-primary"
+              data-tour="publish"
               onClick={() => setPublishOpen(true)}
             >
               {chromeLocale === 'en' ? 'Publish' : 'Opublikuj'}
@@ -327,6 +408,7 @@ export function EditApp({
               target="_blank"
               rel="noreferrer"
               className="cms-btn cms-btn-view-site inline-flex items-center gap-2"
+              data-tour="preview"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.75" />
@@ -419,6 +501,7 @@ export function EditApp({
               disabled={saving || loading || !dirty}
               onClick={() => void save()}
               className="cms-btn cms-btn-primary"
+              data-tour="save"
             >
               {saving ? t.saving : t.saveChanges}
             </button>
@@ -430,6 +513,20 @@ export function EditApp({
         open={publishOpen}
         onClose={() => setPublishOpen(false)}
       />
+      {tourStatus === 'active' ? (
+        <CmsOnboardingTour
+          step={tourStep}
+          locale={chromeLocale}
+          editUrl={`https://${siteSlug || 'twoje-portfolio'}.hostesswebs.pl/edit`}
+          earlyAdopter={tourEarlyAdopter}
+          onBack={() => setTourStep((current) => Math.max(0, current - 1))}
+          onNext={() => {
+            if (tourStep >= 5) completeTour()
+            else setTourStep((current) => current + 1)
+          }}
+          onSkip={completeTour}
+        />
+      ) : null}
     </div>
   )
 }
