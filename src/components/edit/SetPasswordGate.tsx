@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { createSupabaseBrowser } from '@/lib/supabaseAuth'
 import type { CmsChromeStrings } from '@/lib/cms/i18n'
+import { storePreferredLoginMethod } from '@/lib/cms/loginPreference'
 
 type Props = {
   supabaseUrl: string
@@ -45,6 +46,7 @@ export function SetPasswordGate({
         data: { cms_password_set: true },
       })
       if (error) throw error
+      storePreferredLoginMethod('password')
       setStatus('ok')
       setMessage(t.passwordUpdated)
       setPassword('')
