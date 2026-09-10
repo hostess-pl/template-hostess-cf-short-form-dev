@@ -15,6 +15,7 @@ import {
   shortFormHasBakedHeroDefault,
 } from '@/lib/cms/portfolioCompletion';
 import { getCmsSiteSlug } from '@/lib/cms/env';
+import { portfolioPaletteCss } from '@/lib/portfolioPalette';
 const defaultLocale = getDefaultLocale();
 const locale = Astro.locals.locale ?? defaultLocale;
 const hostess = loadHostess(Astro.locals.cmsHostess);
@@ -29,6 +30,10 @@ const draftCompletion = showDraftBanner
     )
   : null;
 const draftSiteSlug = getCmsSiteSlug();
+const portfolioPaletteStyle = portfolioPaletteCss(
+  hostess.branding.palette,
+  hostess.branding.templateKey,
+);
 const meta = seo[locale];
 const canonicalUrl = localeUrl(locale, siteConfig.url);
 const ogImageUrl =
@@ -56,6 +61,7 @@ const enabledLocales = [...activeLocales];
 <!doctype html>
 <html
   lang={locale}
+  style={portfolioPaletteStyle}
   data-locale={locale}
   data-consent-enabled={analyticsFlags.consentEnabled ? '1' : '0'}
   data-analytics-enabled={!showDraftBanner && analyticsFlags.analyticsEnabled ? '1' : '0'}

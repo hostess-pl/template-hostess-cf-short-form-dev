@@ -29,6 +29,8 @@ export type PortfolioCompletion = {
 type Options = {
   /** Provision always bakes form hero to hero.jpg on this tip. */
   hasBakedHero?: boolean
+  /** Authenticated CMS media-library image uploads not yet referenced by the document. */
+  uploadedPhotoCount?: number
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -71,6 +73,23 @@ function countAssetPhotos(assets: Record<string, unknown> | null): number {
   return n
 }
 
+function localizedCopyLength(
+  doc: Record<string, unknown> | null | undefined,
+  keys: readonly string[],
+): number {
+  const values: unknown[] = []
+  const flat = asRecord(doc?.copy)
+  if (flat) values.push(...keys.map((key) => flat[key]))
+  const byLocale = asRecord(doc?.copyByLocale)
+  if (byLocale) {
+    for (const bucket of Object.values(byLocale)) {
+      const copy = asRecord(bucket)
+      if (copy) values.push(...keys.map((key) => copy[key]))
+    }
+  }
+  return Math.max(0, ...values.map(textLen))
+}
+
 /**
  * Score a hostess / cms_content document for onboarding UI.
  * Heavier weights = more visual payoff on the public portfolio.
@@ -106,7 +125,13 @@ export function computePortfolioCompletion(
     return Boolean(row && eventImage(row))
   })
 
-  const bioText = String(bio?.short || copy?.aboutLead || copy?.profile || '').trim()
+  const bioLength = Math.max(
+    textLen(bio?.short),
+    localizedCopyLength(doc, ['aboutLead', 'experienceSummary', 'profile']),
+    textLen(copy?.aboutLead),
+    textLen(copy?.experienceSummary),
+    textLen(copy?.profile),
+  )
   const langOk = languages.some((l) => nonEmpty(asRecord(l)?.name))
   const jobOk = employment.some((j) => {
     const row = asRecord(j)
@@ -137,7 +162,9 @@ export function computePortfolioCompletion(
   )
 
   const assetPhotoCount = countAssetPhotos(assets)
-  const galleryDepthOk = imagedEvents.length >= 2 || assetPhotoCount >= 3
+  const uploadedPhotoCount = Math.max(0, Math.floor(options.uploadedPhotoCount || 0))
+  const galleryDepthOk =
+    imagedEvents.length >= 2 || assetPhotoCount + uploadedPhotoCount >= 2
 
   const milestones: PortfolioMilestone[] = [
     {
@@ -170,7 +197,7 @@ export function computePortfolioCompletion(
     {
       id: 'bio',
       weight: 14,
-      done: bioText.length >= 40,
+      done: bioLength >= 40,
       sectionId: 'about',
       labelPl: 'Napisz krótkie bio',
       labelEn: 'Write a short bio',
