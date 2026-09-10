@@ -1,5 +1,7 @@
 export type PortfolioPaletteId = 'default' | 'rose' | 'sage' | 'blue' | 'gold'
 
+import { normalizeHexColor } from './colorCustomization.ts'
+
 export type PortfolioPalette = {
   id: PortfolioPaletteId
   labelPl: string
@@ -38,17 +40,38 @@ export function portfolioPaletteAccent(
   return isDarkPortfolioTemplate(templateKey) ? palette.dark : palette.light
 }
 
-export function portfolioPaletteCss(paletteId: unknown, templateKey: unknown): string | undefined {
+export function portfolioPaletteCss(
+  paletteId: unknown,
+  templateKey: unknown,
+  custom: Record<string, unknown> = {},
+): string | undefined {
   const accent = portfolioPaletteAccent(paletteId, templateKey)
-  if (!accent) return undefined
   const dark = isDarkPortfolioTemplate(templateKey)
   const mixTarget = dark ? 'white' : 'black'
-  return [
-    `--accent: ${accent}`,
-    `--accent-hover: color-mix(in srgb, ${accent} 82%, ${mixTarget})`,
-    `--hero-wash: ${accent}`,
-    `--ring: ${accent}`,
-    `--border: color-mix(in srgb, ${accent} 20%, var(--background))`,
-    `--border-strong: color-mix(in srgb, ${accent} 42%, var(--foreground) 8%)`,
-  ].join('; ')
+  const declarations: string[] = []
+  if (accent) {
+    declarations.push(
+      `--accent: ${accent}`,
+      `--accent-hover: color-mix(in srgb, ${accent} 82%, ${mixTarget})`,
+      `--hero-wash: ${accent}`,
+      `--ring: ${accent}`,
+      `--border: color-mix(in srgb, ${accent} 20%, var(--background))`,
+      `--border-strong: color-mix(in srgb, ${accent} 42%, var(--foreground) 8%)`,
+    )
+  }
+  const background = normalizeHexColor(custom.customBackgroundColor)
+  const heading = normalizeHexColor(custom.headingColor)
+  const body = normalizeHexColor(custom.bodyColor)
+  const muted = normalizeHexColor(custom.mutedColor)
+  if (background) {
+    declarations.push(
+      `--background: ${background}`,
+      `--background-secondary: color-mix(in srgb, ${background} 92%, ${dark ? 'white' : 'black'})`,
+      `--card: color-mix(in srgb, ${background} 96%, ${dark ? 'white' : 'black'})`,
+    )
+  }
+  if (heading) declarations.push(`--heading-color: ${heading}`)
+  if (body) declarations.push(`--foreground: ${body}`)
+  if (muted) declarations.push(`--foreground-muted: ${muted}`, `--foreground-subtle: ${muted}`)
+  return declarations.length ? declarations.join('; ') : undefined
 }

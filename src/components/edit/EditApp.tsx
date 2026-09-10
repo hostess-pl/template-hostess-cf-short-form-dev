@@ -9,6 +9,7 @@ import { PublishConfirmModal } from '@/components/edit/PublishConfirmModal'
 import { LocalesToggle } from '@/components/edit/LocalesToggle'
 import { CmsOnboardingTour, type TourEarlyAdopter } from '@/components/edit/CmsOnboardingTour'
 import { StyleEditor } from '@/components/edit/StyleEditor'
+import { DeleteAccountPanel } from '@/components/edit/DeleteAccountPanel'
 import { getCmsNav } from '@/cms/adapter'
 import {
   availableContentLocales,
@@ -520,6 +521,11 @@ export function EditApp({
                 supabaseAnonKey={supabaseAnonKey}
                 t={t}
               />
+              <DeleteAccountPanel
+                locale={chromeLocale}
+                supabaseUrl={supabaseUrl}
+                supabaseAnonKey={supabaseAnonKey}
+              />
             </div>
           ) : loading || !document ? (
             <p className="text-sm text-[var(--cms-muted)]">{t.loading}</p>
@@ -546,37 +552,39 @@ export function EditApp({
 
         {showSaveBar ? (
           <div className="cms-save-bar" role="region" aria-label={t.saveChanges}>
-            <p
-              className="cms-save-bar__status"
-              data-state={
-                saving ? 'saving' : saveError ? 'error' : dirty ? 'dirty' : ok ? 'saved' : 'idle'
-              }
-              role="status"
-            >
-              <span className="cms-save-bar__status-dot" aria-hidden="true" />
-              <span>
-                {saving
-                  ? t.saving
-                  : saveError
-                    ? saveError
-                    : dirty
-                      ? t.unsavedChanges
-                      : ok
-                        ? t.saved
-                        : chromeLocale === 'en'
-                          ? 'No changes to save'
-                          : 'Brak zmian do zapisania'}
-              </span>
-            </p>
-            <button
-              type="button"
-              disabled={saving || loading || !dirty}
-              onClick={() => void save()}
-              className="cms-btn cms-btn-primary"
-              data-tour="save"
-            >
-              {saving ? t.saving : t.saveChanges}
-            </button>
+            <div className="cms-save-bar__actions">
+              <p
+                className="cms-save-bar__status"
+                data-state={
+                  saving ? 'saving' : saveError ? 'error' : dirty ? 'dirty' : ok ? 'saved' : 'idle'
+                }
+                role="status"
+              >
+                <span className="cms-save-bar__status-dot" aria-hidden="true" />
+                <span>
+                  {saving
+                    ? t.saving
+                    : saveError
+                      ? saveError
+                      : dirty
+                        ? t.unsavedChanges
+                        : ok
+                          ? t.saved
+                          : chromeLocale === 'en'
+                            ? 'No changes to save'
+                            : 'Brak zmian do zapisania'}
+                </span>
+              </p>
+              <button
+                type="button"
+                disabled={saving || loading || !dirty}
+                onClick={() => void save()}
+                className="cms-btn cms-btn-primary"
+                data-tour="save"
+              >
+                {saving ? t.saving : t.saveChanges}
+              </button>
+            </div>
           </div>
         ) : null}
       </main>

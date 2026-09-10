@@ -466,7 +466,7 @@ html[data-cms-theme='dark'] .cms-modal-backdrop {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.75rem;
   border-bottom: 1px solid var(--cms-line);
   padding: 0.85rem 1rem;
@@ -475,6 +475,14 @@ html[data-cms-theme='dark'] .cms-modal-backdrop {
   position: sticky;
   top: 0;
   z-index: var(--cms-z-header, 20);
+}
+
+.cms-save-bar__actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
 }
 
 .cms-shell__header-start {
@@ -610,6 +618,11 @@ html[data-cms-theme='dark'] .cms-modal-backdrop {
 
 @media (max-width: 639px) {
   .cms-save-bar {
+    align-items: stretch;
+  }
+
+  .cms-save-bar__actions {
+    width: 100%;
     flex-direction: column;
     align-items: stretch;
   }
@@ -1094,6 +1107,183 @@ html[data-cms-theme='dark'] .cms-modal-backdrop {
   padding: 0.75rem 0.9rem;
   font-size: 0.8125rem;
   line-height: 1.5;
+}
+
+.cms-style-section {
+  border: 1px solid var(--cms-line);
+  border-radius: var(--radius-lg);
+  background: var(--cms-bg-elevated);
+  padding: 1rem;
+}
+
+.cms-style-section__title {
+  color: var(--cms-ink);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.cms-style-section__hint {
+  margin: 0.25rem 0 1rem;
+  color: var(--cms-muted);
+  font-size: 0.8125rem;
+}
+
+.cms-color-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--cms-ink-soft);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.cms-color-control__inputs {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cms-color-control input[type='color'] {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  cursor: pointer;
+  border: 1px solid var(--cms-line);
+  border-radius: var(--radius);
+  background: var(--cms-bg);
+  padding: 0.25rem;
+}
+
+.cms-color-control__hex {
+  width: 7.5rem;
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+}
+
+.cms-text-preview {
+  margin-top: 1rem;
+  min-height: 9rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid var(--cms-line);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.cms-text-preview__eyebrow {
+  margin-bottom: 0.75rem;
+  color: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  opacity: 0.72;
+  text-transform: uppercase;
+}
+
+.cms-text-preview[data-role='heading'] p {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 5vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.cms-text-preview[data-role='body'] p {
+  max-width: 60ch;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.cms-text-preview[data-role='muted'] p {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cms-style-contrast {
+  min-height: 1.25rem;
+  margin-top: 0.625rem;
+  color: var(--cms-muted);
+  font-size: 0.75rem;
+}
+
+.cms-danger-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  border: 1px solid color-mix(in srgb, var(--cms-danger) 36%, var(--cms-line));
+  border-radius: var(--radius-lg);
+  background: var(--cms-danger-bg);
+  padding: 1rem;
+}
+
+.cms-danger-zone h2,
+.cms-delete-modal h2 {
+  color: var(--cms-ink);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.cms-danger-zone p,
+.cms-delete-modal > p {
+  margin-top: 0.35rem;
+  color: var(--cms-muted);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.cms-btn-danger {
+  border-color: var(--cms-danger);
+  background: var(--cms-danger);
+  color: #fff;
+}
+
+.cms-btn-danger:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.cms-btn-danger:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.cms-delete-modal {
+  max-width: 31rem;
+}
+
+.cms-delete-modal .cms-label {
+  display: block;
+  margin-top: 1.25rem;
+}
+
+.cms-delete-modal .cms-input {
+  margin-top: 0.5rem;
+}
+
+.cms-delete-error {
+  margin-top: 0.5rem;
+  color: var(--cms-danger);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+@media (max-width: 479px) {
+  .cms-color-control {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cms-color-control__inputs,
+  .cms-color-control__hex {
+    width: 100%;
+  }
 }
 
 @media (max-width: 420px) {
