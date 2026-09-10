@@ -6,6 +6,7 @@ export type CmsSectionId =
   | 'dashboard'
   | 'analytics'
   | 'assets'
+  | 'style'
   | 'account'
   | 'profile'
   | 'hero'
@@ -49,6 +50,7 @@ export function buildCmsNav(t: CmsChromeStrings, options: CmsNavOptions = {}): C
       : []),
     ...(options.includeAnalytics ? [{ id: 'analytics' as const, label: t.analytics, group: 'insights' as const }] : []),
     { id: 'assets', label: t.assets, group: 'media' },
+    { id: 'style', label: t.styleEditor, group: 'content' },
     { id: 'hero', label: t.hero, group: 'content' },
     { id: 'about', label: t.about, group: 'content' },
     { id: 'experience', label: t.experience, group: 'content' },

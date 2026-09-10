@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnalyticsDashboard } from '@/components/edit/AnalyticsDashboard'
 import { AssetsLibrary } from '@/components/edit/AssetsLibrary'
 import { EditDashboard } from '@/components/edit/EditDashboard'
@@ -8,6 +8,7 @@ import { ThemeIconButton } from '@/components/edit/LoginThemeToggle'
 import { PublishConfirmModal } from '@/components/edit/PublishConfirmModal'
 import { LocalesToggle } from '@/components/edit/LocalesToggle'
 import { CmsOnboardingTour, type TourEarlyAdopter } from '@/components/edit/CmsOnboardingTour'
+import { StyleEditor } from '@/components/edit/StyleEditor'
 import { getCmsNav } from '@/cms/adapter'
 import {
   availableContentLocales,
@@ -23,6 +24,7 @@ import { useCmsTheme } from '@/lib/cms/theme'
 import { navGroupLabels, type CmsNavGroup, type CmsSectionId } from '@/lib/cms/nav'
 import { CMS_MARK_SRC, CMS_PRODUCT_NAME, CMS_TEMPLATE_LABEL } from '@/cms/brand'
 import { createSupabaseBrowser } from '@/lib/supabaseAuth'
+import { fetchMediaAssets, isImageContentType, type MediaAsset } from '@/lib/cms/media'
 import '@/styles/edit-cms.css'
 
 type Props = {
@@ -111,7 +113,10 @@ export function EditApp({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
+  const [saveError, setSaveError] = useState('')
   const [dirty, setDirty] = useState(false)
+  const [uploadedPhotoCount, setUploadedPhotoCount] = useState(0)
+  const mediaCountLoaded = useRef(false)
   const [passwordGateOpen, setPasswordGateOpen] = useState(needsPasswordSetup || forcePasswordSetup)
   const [navOpen, setNavOpen] = useState(false)
   const [publishOpen, setPublishOpen] = useState(false)
@@ -203,7 +208,7 @@ export function EditApp({
     [nav, section],
   )
 
-  const showSaveBar = CONTENT_SECTIONS.has(section) || section === 'account'
+  const showSaveBar = CONTENT_SECTIONS.has(section) || section === 'account' || section === 'style'
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -228,6 +233,38 @@ export function EditApp({
     void load()
   }, [load])
 
+  const updateUploadedPhotoCount = useCallback((items: MediaAsset[]) => {
+    setUploadedPhotoCount(
+      items.filter((item) => item.source === 'storage' && isImageContentType(item.contentType)).length,
+    )
+  }, [])
+
+  useEffect(() => {
+    if (!document || mediaCountLoaded.current) return
+    mediaCountLoaded.current = true
+    let cancelled = false
+    void fetchMediaAssets()
+      .then((items) => {
+        if (!cancelled) updateUploadedPhotoCount(items)
+      })
+      .catch(() => {
+        // Completion remains available from document references if media listing fails.
+        mediaCountLoaded.current = false
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [document, updateUploadedPhotoCount])
+
+  useEffect(() => {
+    const onMediaChanged = (event: Event) => {
+      const items = (event as CustomEvent<{ items?: MediaAsset[] }>).detail?.items
+      if (Array.isArray(items)) updateUploadedPhotoCount(items)
+    }
+    window.addEventListener('cms:media-assets-changed', onMediaChanged)
+    return () => window.removeEventListener('cms:media-assets-changed', onMediaChanged)
+  }, [updateUploadedPhotoCount])
+
   useEffect(() => {
     if (!dirty) return
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -250,6 +287,7 @@ export function EditApp({
     }
     setSection(next as CmsSectionId)
     setOk('')
+    setSaveError('')
     setNavOpen(false)
   }
 
@@ -258,6 +296,7 @@ export function EditApp({
     setSaving(true)
     setError('')
     setOk('')
+    setSaveError('')
     try {
       const res = await fetch('/api/edit/document', {
         method: 'PUT',
@@ -270,7 +309,7 @@ export function EditApp({
       setDirty(false)
       if (document) setSavedSnapshot(structuredClone(document))
     } catch (err) {
-      setError(err instanceof Error ? err.message : t.saveFailed)
+      setSaveError(err instanceof Error ? err.message : t.saveFailed)
     } finally {
       setSaving(false)
     }
@@ -439,18 +478,28 @@ export function EditApp({
               {error}
             </p>
           ) : null}
-          {ok ? (
-            <p className="mb-4 rounded-[var(--radius-lg)] border border-[var(--cms-ok)] bg-[var(--cms-ok-bg)] px-3 py-2 text-sm text-[var(--cms-ok)]">
-              {ok}
-            </p>
-          ) : null}
-
           {section === 'dashboard' ? (
-            <EditDashboard onOpenSection={navigate} chromeLocale={chromeLocale} document={document} />
+            <EditDashboard
+              onOpenSection={navigate}
+              chromeLocale={chromeLocale}
+              document={document}
+              uploadedPhotoCount={uploadedPhotoCount}
+            />
           ) : section === 'analytics' ? (
             <AnalyticsDashboard t={t} />
           ) : section === 'assets' ? (
-            <AssetsLibrary t={t} />
+            <AssetsLibrary t={t} onItemsChange={updateUploadedPhotoCount} />
+          ) : section === 'style' && document ? (
+            <StyleEditor
+              document={document}
+              locale={chromeLocale}
+              onChange={(next) => {
+                setDocument(next)
+                setDirty(true)
+                setOk('')
+                setSaveError('')
+              }}
+            />
           ) : section === 'account' ? (
             <div className="mx-auto flex max-w-md flex-col gap-6">
               {document ? (
@@ -461,6 +510,7 @@ export function EditApp({
                     setDocument(next)
                     setDirty(true)
                     setOk('')
+                    setSaveError('')
                   }}
                 />
               ) : null}
@@ -480,10 +530,13 @@ export function EditApp({
               contentLocale={contentLocale}
               contentLocales={contentLocales}
               onContentLocaleChange={onContentLocaleChange}
+              chromeLocale={chromeLocale}
               t={t}
               onChange={(next) => {
                 setDocument(next)
                 setDirty(true)
+                setOk('')
+                setSaveError('')
               }}
             />
           ) : (
@@ -493,8 +546,27 @@ export function EditApp({
 
         {showSaveBar ? (
           <div className="cms-save-bar" role="region" aria-label={t.saveChanges}>
-            <p className="cms-save-bar__status" data-dirty={dirty}>
-              {dirty ? t.unsavedChanges : ok ? t.saved : '\u00a0'}
+            <p
+              className="cms-save-bar__status"
+              data-state={
+                saving ? 'saving' : saveError ? 'error' : dirty ? 'dirty' : ok ? 'saved' : 'idle'
+              }
+              role="status"
+            >
+              <span className="cms-save-bar__status-dot" aria-hidden="true" />
+              <span>
+                {saving
+                  ? t.saving
+                  : saveError
+                    ? saveError
+                    : dirty
+                      ? t.unsavedChanges
+                      : ok
+                        ? t.saved
+                        : chromeLocale === 'en'
+                          ? 'No changes to save'
+                          : 'Brak zmian do zapisania'}
+              </span>
             </p>
             <button
               type="button"

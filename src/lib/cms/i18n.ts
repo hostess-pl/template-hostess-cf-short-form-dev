@@ -12,6 +12,7 @@ export type CmsChromeStrings = {
   dashboard: string
   analytics: string
   assets: string
+  styleEditor: string
   account: string
   profile: string
   hero: string
@@ -269,6 +270,7 @@ const PL: CmsChromeStrings = {
   dashboard: 'Sekcje strony',
   analytics: 'Analityka',
   assets: 'Pliki',
+  styleEditor: 'Styl strony (beta)',
   account: 'Konto',
   profile: 'Profil i social media',
   hero: 'Hero',
@@ -533,6 +535,7 @@ const EN: CmsChromeStrings = {
   dashboard: 'Page sections',
   analytics: 'Analytics',
   assets: 'Assets',
+  styleEditor: 'Website style (beta)',
   account: 'Account',
   profile: 'Profile & socials',
   hero: 'Hero',

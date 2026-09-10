@@ -10,6 +10,7 @@ type Props = {
   onOpenSection: (sectionId: string) => void
   chromeLocale?: CmsChromeLocale
   document?: Record<string, unknown> | null
+  uploadedPhotoCount?: number
 }
 
 const HEIGHT_CLASS = {
@@ -93,10 +94,16 @@ function CheckIcon() {
   )
 }
 
-export function EditDashboard({ onOpenSection, chromeLocale = 'pl', document = null }: Props) {
+export function EditDashboard({
+  onOpenSection,
+  chromeLocale = 'pl',
+  document = null,
+  uploadedPhotoCount = 0,
+}: Props) {
   const blocks = getDashboardBlocks(chromeLocale)
   const completion = computePortfolioCompletion(document, {
     hasBakedHero: shortFormHasBakedHeroDefault(),
+    uploadedPhotoCount,
   })
   const { pct, doneCount, taskCount, milestones, next } = completion
   const core = milestones.filter((m) => m.tier === 'core')

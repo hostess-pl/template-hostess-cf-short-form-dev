@@ -22,6 +22,7 @@
     "deploy:cms-verify": "node scripts/deploy-cms-verify.mjs",
     "test:completion": "node --experimental-strip-types scripts/test/portfolioCompletion.test.mjs",
     "test:copyByLocale": "node --experimental-strip-types scripts/test/copyByLocale.test.mjs",
+    "test:portfolioPalette": "node --experimental-strip-types scripts/test/portfolioPalette.test.mjs",
     "test:heicProvision": "node scripts/test/heicProvision.test.mjs"
   },
   "dependencies": {

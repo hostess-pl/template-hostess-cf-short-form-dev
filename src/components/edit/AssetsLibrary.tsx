@@ -11,6 +11,7 @@ import type { CmsChromeStrings } from '@/lib/cms/i18n'
 type Props = {
   t: CmsChromeStrings
   onSelect?: (asset: MediaAsset) => void
+  onItemsChange?: (items: MediaAsset[]) => void
   accept?: 'image' | 'video' | 'all'
   compact?: boolean
 }
@@ -21,7 +22,13 @@ function matchesAccept(asset: MediaAsset, accept: Props['accept']): boolean {
   return isVideoContentType(asset.contentType)
 }
 
-export function AssetsLibrary({ t, onSelect, accept = 'all', compact = false }: Props) {
+export function AssetsLibrary({
+  t,
+  onSelect,
+  onItemsChange,
+  accept = 'all',
+  compact = false,
+}: Props) {
   const [items, setItems] = useState<MediaAsset[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -33,14 +40,16 @@ export function AssetsLibrary({ t, onSelect, accept = 'all', compact = false }: 
     setError('')
     try {
       const list = await fetchMediaAssets()
-      setItems(list.filter((item) => matchesAccept(item, accept)))
+      const filtered = list.filter((item) => matchesAccept(item, accept))
+      setItems(filtered)
+      onItemsChange?.(filtered)
     } catch (err) {
       setError(err instanceof Error ? err.message : t.loadFailed)
       setItems([])
     } finally {
       setLoading(false)
     }
-  }, [accept, t.loadFailed])
+  }, [accept, onItemsChange, t.loadFailed])
 
   useEffect(() => {
     void load()
@@ -51,7 +60,12 @@ export function AssetsLibrary({ t, onSelect, accept = 'all', compact = false }: 
     setError('')
     try {
       const asset = await uploadMediaAsset(file)
-      setItems((prev) => [asset, ...prev.filter((item) => item.path !== asset.path)])
+      const next = [asset, ...items.filter((item) => item.path !== asset.path)]
+      setItems(next)
+      onItemsChange?.(next)
+      window.dispatchEvent(
+        new CustomEvent('cms:media-assets-changed', { detail: { items: next } }),
+      )
       onSelect?.(asset)
     } catch (err) {
       setError(err instanceof Error ? err.message : t.uploadFailed)

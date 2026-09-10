@@ -1,7 +1,12 @@
 import type { ReactNode } from 'react'
-import { useId, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { AssetPicker } from '@/components/edit/AssetPicker'
-import type { CmsChromeStrings, ContentLocale, CopyFields } from '@/lib/cms/i18n'
+import type {
+  CmsChromeLocale,
+  CmsChromeStrings,
+  ContentLocale,
+  CopyFields,
+} from '@/lib/cms/i18n'
 import {
   getAppearanceTextRaw,
   getCopyFieldPlaceholder,
@@ -27,8 +32,203 @@ type Props = {
   contentLocale: ContentLocale
   contentLocales: ContentLocale[]
   onContentLocaleChange: (locale: ContentLocale) => void
+  chromeLocale: CmsChromeLocale
   t: CmsChromeStrings
   onChange: (next: Record<string, unknown>) => void
+}
+
+function TagInput({
+  label,
+  values,
+  placeholder,
+  isEn,
+  onChange,
+}: {
+  label: string
+  values: string[]
+  placeholder: string
+  isEn: boolean
+  onChange: (values: string[]) => void
+}) {
+  const id = useId()
+  const [draft, setDraft] = useState('')
+
+  function add(raw: string) {
+    const additions = raw
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+    if (!additions.length) return
+    const existing = new Set(values.map((item) => item.toLocaleLowerCase()))
+    const next = [...values]
+    for (const item of additions) {
+      const key = item.toLocaleLowerCase()
+      if (!existing.has(key)) {
+        next.push(item.slice(0, 120))
+        existing.add(key)
+      }
+    }
+    onChange(next)
+    setDraft('')
+  }
+
+  return (
+    <div className="cms-tag-field">
+      <label
+        id={`${id}-label`}
+        htmlFor={id}
+        className="mb-1 block text-xs font-medium uppercase tracking-wide text-[var(--cms-muted)]"
+      >
+        {label}
+      </label>
+      <div className="cms-tag-input" data-empty={values.length === 0}>
+        {values.map((value, index) => (
+          <span className="cms-tag" key={`${value}-${index}`}>
+            <span>{value}</span>
+            <button
+              type="button"
+              onClick={() => onChange(values.filter((_, itemIndex) => itemIndex !== index))}
+              aria-label={isEn ? `Remove ${value}` : `Usuń: ${value}`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="m7 7 10 10M17 7 7 17"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </span>
+        ))}
+        <input
+          id={id}
+          type="text"
+          value={draft}
+          placeholder={values.length ? '' : placeholder}
+          onChange={(event) => {
+            const next = event.target.value
+            if (next.includes(',')) add(next)
+            else setDraft(next)
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' && event.key !== ',') return
+            event.preventDefault()
+            add(draft)
+          }}
+          onBlur={() => add(draft)}
+          aria-describedby={`${id}-hint`}
+        />
+      </div>
+      <p id={`${id}-hint`} className="mt-1.5 text-xs text-[var(--cms-muted)]">
+        {isEn
+          ? 'Type an item and press comma or Enter. Use the × button to remove it.'
+          : 'Wpisz pozycję i naciśnij przecinek lub Enter. Usuń ją przyciskiem ×.'}
+      </p>
+    </div>
+  )
+}
+
+function MonthYearInput({
+  value,
+  label,
+  isEn,
+  disabled = false,
+  onChange,
+}: {
+  value: string
+  label: string
+  isEn: boolean
+  disabled?: boolean
+  onChange: (value: string) => void
+}) {
+  const currentYear = new Date().getUTCFullYear()
+  const parsed = /^(0[1-9]|1[0-2])-(\d{4})$/.exec(value.trim())
+    || /^(\d{4})-(0[1-9]|1[0-2])$/.exec(value.trim())
+  const normalized = parsed
+    ? value.trim().startsWith(parsed[1]) && parsed[1].length === 2
+      ? { month: parsed[1], year: parsed[2] }
+      : { month: parsed[2], year: parsed[1] }
+    : null
+  const [manual, setManual] = useState(Boolean(value && !normalized))
+  const [draftYear, setDraftYear] = useState(normalized?.year || String(currentYear))
+  const years = useMemo(
+    () => Array.from({ length: currentYear - 1959 }, (_, index) => String(currentYear - index)),
+    [currentYear],
+  )
+
+  useEffect(() => {
+    if (normalized?.year) setDraftYear(normalized.year)
+  }, [normalized?.year])
+
+  if (manual) {
+    return (
+      <div className="cms-month-year">
+        <input
+          type="text"
+          className="cms-input"
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder={isEn ? 'MM-YYYY' : 'MM-RRRR'}
+          aria-label={label}
+          value={value}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+        />
+        <button
+          type="button"
+          className="cms-month-year__mode"
+          disabled={disabled}
+          onClick={() => setManual(false)}
+        >
+          {isEn ? 'Use lists' : 'Użyj list'}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="cms-month-year">
+      <div className="cms-month-year__selects">
+        <select
+          className="cms-input"
+          aria-label={isEn ? 'Month' : 'Miesiąc'}
+          value={normalized?.month || ''}
+          disabled={disabled}
+          onChange={(event) => {
+            const month = event.target.value
+            onChange(month ? `${month}-${draftYear}` : '')
+          }}
+        >
+          <option value="">{isEn ? 'Month' : 'Miesiąc'}</option>
+          {Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0')).map(
+            (month) => <option key={month} value={month}>{month}</option>,
+          )}
+        </select>
+        <select
+          className="cms-input"
+          aria-label={isEn ? 'Year' : 'Rok'}
+          value={draftYear}
+          disabled={disabled}
+          onChange={(event) => {
+            const year = event.target.value
+            setDraftYear(year)
+            if (normalized?.month) onChange(`${normalized.month}-${year}`)
+          }}
+        >
+          {years.map((year) => <option key={year} value={year}>{year}</option>)}
+        </select>
+      </div>
+      <button
+        type="button"
+        className="cms-month-year__mode"
+        disabled={disabled}
+        onClick={() => setManual(true)}
+      >
+        {isEn ? 'Enter manually' : 'Wpisz ręcznie'}
+      </button>
+    </div>
+  )
 }
 
 function Field({
@@ -45,6 +245,17 @@ function Field({
       </span>
       {children}
     </label>
+  )
+}
+
+function FieldGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <fieldset className="block">
+      <legend className="mb-1 block text-xs font-medium uppercase tracking-wide text-[var(--cms-muted)]">
+        {label}
+      </legend>
+      {children}
+    </fieldset>
   )
 }
 
@@ -359,9 +570,11 @@ export function SectionEditor({
   contentLocale,
   contentLocales,
   onContentLocaleChange,
+  chromeLocale,
   t,
   onChange,
 }: Props) {
+  const isEn = chromeLocale === 'en'
   const localeBar = (
     <ContentLocaleToolbar
       contentLocale={contentLocale}
@@ -509,9 +722,10 @@ export function SectionEditor({
                     }}
                   />
                 </Field>
-                <Field label={t.fieldStart}>
-                  <TextInput
-                    placeholder={t.phStart}
+                <FieldGroup label={t.fieldStart}>
+                  <MonthYearInput
+                    label={t.fieldStart}
+                    isEn={isEn}
                     value={String(entry.startDate || '')}
                     onChange={(startDate) => {
                       const next = [...entries]
@@ -519,10 +733,12 @@ export function SectionEditor({
                       onChange({ ...document, education: { ...education, entries: next } })
                     }}
                   />
-                </Field>
-                <Field label={t.fieldEnd}>
-                  <TextInput
-                    placeholder={t.phEnd}
+                </FieldGroup>
+                <FieldGroup label={t.fieldEnd}>
+                  <MonthYearInput
+                    label={t.fieldEnd}
+                    isEn={isEn}
+                    disabled={Boolean(entry.isOngoing)}
                     value={String(entry.endDate || '')}
                     onChange={(endDate) => {
                       const next = [...entries]
@@ -530,14 +746,14 @@ export function SectionEditor({
                       onChange({ ...document, education: { ...education, entries: next } })
                     }}
                   />
-                </Field>
+                </FieldGroup>
               </div>
               <CheckboxField
                 label={t.fieldOngoing}
                 checked={Boolean(entry.isOngoing)}
                 onChange={(isOngoing) => {
                   const next = [...entries]
-                  next[index] = { ...entry, isOngoing }
+                  next[index] = { ...entry, isOngoing, ...(isOngoing ? { endDate: '' } : {}) }
                   onChange({ ...document, education: { ...education, entries: next } })
                 }}
               />
@@ -627,36 +843,20 @@ export function SectionEditor({
 
         <section className="space-y-3">
           <h3 className="font-display text-lg font-semibold text-[var(--cms-ink)]">{t.subsectionTraits}</h3>
-          <Field label={t.fieldTraits}>
-            <TextInput
-              placeholder={t.phTraits}
-              value={traits.join(', ')}
-              onChange={(v) =>
-                onChange({
-                  ...document,
-                  traits: v
-                    .split(',')
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                })
-              }
-            />
-          </Field>
-          <Field label={t.fieldSkills}>
-            <TextInput
-              placeholder={t.phSkills}
-              value={skills.join(', ')}
-              onChange={(v) =>
-                onChange({
-                  ...document,
-                  skills: v
-                    .split(',')
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                })
-              }
-            />
-          </Field>
+          <TagInput
+            label={t.fieldTraits}
+            values={traits}
+            placeholder={t.phTraits}
+            isEn={isEn}
+            onChange={(traits) => onChange({ ...document, traits })}
+          />
+          <TagInput
+            label={t.fieldSkills}
+            values={skills}
+            placeholder={t.phSkills}
+            isEn={isEn}
+            onChange={(skills) => onChange({ ...document, skills })}
+          />
         </section>
 
         <section className="space-y-3">
@@ -765,27 +965,34 @@ export function SectionEditor({
               onMove={(dir) => onChange({ ...document, employment: moveItem(employment, index, dir) })}
             >
               <div className="grid gap-3 sm:grid-cols-2">
-                {(['title', 'company', 'startDate', 'endDate'] as const).map((key) => (
-                  <Field key={key} label={jobLabels[key]}>
-                    <TextInput
-                      placeholder={
-                        key === 'title'
-                          ? t.phEmploymentTitle
-                          : key === 'company'
-                            ? t.phCompany
-                            : key === 'startDate'
-                              ? t.phStart
-                              : t.phEnd
-                      }
-                      value={String(job[key] || '')}
-                      onChange={(v) => {
-                        const next = [...employment]
-                        next[index] = { ...job, [key]: v }
-                        onChange({ ...document, employment: next })
-                      }}
-                    />
-                  </Field>
-                ))}
+                {(['title', 'company', 'startDate', 'endDate'] as const).map((key) =>
+                  key === 'startDate' || key === 'endDate' ? (
+                    <FieldGroup key={key} label={jobLabels[key]}>
+                      <MonthYearInput
+                        label={jobLabels[key]}
+                        isEn={isEn}
+                        value={String(job[key] || '')}
+                        onChange={(value) => {
+                          const next = [...employment]
+                          next[index] = { ...job, [key]: value }
+                          onChange({ ...document, employment: next })
+                        }}
+                      />
+                    </FieldGroup>
+                  ) : (
+                    <Field key={key} label={jobLabels[key]}>
+                      <TextInput
+                        placeholder={key === 'title' ? t.phEmploymentTitle : t.phCompany}
+                        value={String(job[key] || '')}
+                        onChange={(value) => {
+                          const next = [...employment]
+                          next[index] = { ...job, [key]: value }
+                          onChange({ ...document, employment: next })
+                        }}
+                      />
+                    </Field>
+                  ),
+                )}
               </div>
               <Field label={t.fieldEmploymentDescription}>
                 <TextInput
@@ -897,9 +1104,10 @@ export function SectionEditor({
                   }
                 />
               </Field>
-              <Field label={t.fieldDate}>
-                <TextInput
-                  placeholder={t.phDate}
+              <FieldGroup label={t.fieldDate}>
+                <MonthYearInput
+                  label={t.fieldDate}
+                  isEn={isEn}
                   value={String(event.date || '')}
                   onChange={(date) => {
                     const next = [...events]
@@ -907,7 +1115,7 @@ export function SectionEditor({
                     onChange({ ...document, events: next })
                   }}
                 />
-              </Field>
+              </FieldGroup>
               <Field label={t.fieldBrand}>
                 <TextInput
                   placeholder={t.phBrand}

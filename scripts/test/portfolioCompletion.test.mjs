@@ -57,6 +57,26 @@ const base = {
 }
 
 {
+  const uploaded = computePortfolioCompletion(
+    { ...base, assets: { hero: 'hero.jpg' } },
+    { hasBakedHero: true, uploadedPhotoCount: 1 },
+  )
+  assert.equal(uploaded.milestones.find((m) => m.id === 'gallery_depth')?.done, true)
+}
+
+{
+  const localizedBio = computePortfolioCompletion({
+    ...base,
+    copyByLocale: {
+      pl: {
+        aboutLead: 'Jestem komunikatywna, odpowiedzialna i dobrze odnajduję się podczas wydarzeń.',
+      },
+    },
+  })
+  assert.equal(localizedBio.milestones.find((m) => m.id === 'bio')?.done, true)
+}
+
+{
   const weights = computePortfolioCompletion(base, { hasBakedHero: true })
   const eventW = weights.milestones.find((m) => m.id === 'event_story')?.weight ?? 0
   const socialW = weights.milestones.find((m) => m.id === 'socials')?.weight ?? 0
