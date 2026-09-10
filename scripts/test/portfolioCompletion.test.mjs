@@ -65,7 +65,18 @@ const base = {
 }
 
 {
-  const localizedBio = computePortfolioCompletion({
+  const extraEventPhoto = computePortfolioCompletion(
+    {
+      ...base,
+      events: [{ id: 'e1', title: 'A', imageFile: 'event-1.jpg', imageFiles: ['extra.jpg'] }],
+    },
+    { hasBakedHero: false },
+  )
+  assert.equal(extraEventPhoto.milestones.find((m) => m.id === 'gallery_depth')?.done, true)
+}
+
+{
+  const incompleteLocalizedBio = computePortfolioCompletion({
     ...base,
     copyByLocale: {
       pl: {
@@ -73,7 +84,31 @@ const base = {
       },
     },
   })
+  assert.equal(incompleteLocalizedBio.milestones.find((m) => m.id === 'bio')?.done, false)
+}
+
+{
+  const localizedBio = computePortfolioCompletion({
+    ...base,
+    copyByLocale: {
+      pl: {
+        aboutLead: 'Jestem komunikatywna i odpowiedzialna.',
+        experienceSummary: 'Dobrze odnajduję się podczas wydarzeń.',
+      },
+    },
+  })
   assert.equal(localizedBio.milestones.find((m) => m.id === 'bio')?.done, true)
+}
+
+{
+  const splitAcrossLanguages = computePortfolioCompletion({
+    ...base,
+    copyByLocale: {
+      pl: { aboutLead: 'Pierwszy tekst.' },
+      en: { experienceSummary: 'Second text.' },
+    },
+  })
+  assert.equal(splitAcrossLanguages.milestones.find((m) => m.id === 'bio')?.done, false)
 }
 
 {

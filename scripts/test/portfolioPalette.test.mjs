@@ -12,5 +12,8 @@ assert.equal(portfolioPaletteAccent('blue', 'modern'), '#42678F')
 assert.equal(portfolioPaletteAccent('blue', 'luxury'), '#91BCE8')
 assert.match(portfolioPaletteCss('sage', 'minimal') || '', /--accent: #52705F/)
 assert.equal(portfolioPaletteCss('default', 'elegant'), undefined)
+assert.match(portfolioPaletteCss('default', 'modern', { customBackgroundColor: '#ffffff' }) || '', /--background: #FFFFFF/)
+assert.match(portfolioPaletteCss('default', 'modern', { headingColor: '#123456' }) || '', /--heading-color: #123456/)
+assert.doesNotMatch(portfolioPaletteCss('default', 'modern', { bodyColor: 'red' }) || '', /--foreground:/)
 
 console.log('portfolioPalette.test.mjs: ok')

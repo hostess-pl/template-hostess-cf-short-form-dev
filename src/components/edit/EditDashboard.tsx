@@ -3,7 +3,6 @@ import {
   shortFormHasBakedHeroDefault,
   type PortfolioMilestone,
 } from '@/lib/cms/portfolioCompletion'
-import { getDashboardBlocks } from '@/cms/adapter'
 import type { CmsChromeLocale } from '@/lib/cms/i18n'
 
 type Props = {
@@ -12,13 +11,6 @@ type Props = {
   document?: Record<string, unknown> | null
   uploadedPhotoCount?: number
 }
-
-const HEIGHT_CLASS = {
-  xs: 'min-h-12',
-  sm: 'min-h-24',
-  md: 'min-h-36',
-  lg: 'min-h-52',
-} as const
 
 function MilestoneRow({
   task,
@@ -100,7 +92,6 @@ export function EditDashboard({
   document = null,
   uploadedPhotoCount = 0,
 }: Props) {
-  const blocks = getDashboardBlocks(chromeLocale)
   const completion = computePortfolioCompletion(document, {
     hasBakedHero: shortFormHasBakedHeroDefault(),
     uploadedPhotoCount,
@@ -192,26 +183,6 @@ export function EditDashboard({
         </ul>
       </div>
 
-      <div
-        className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--cms-line)] bg-[var(--cms-bg)] shadow-[var(--cms-shadow)]"
-        aria-label={isEn ? 'Portfolio sections' : 'Sekcje portfolio'}
-      >
-        <div className="space-y-3 p-4 sm:p-6">
-          {blocks.map((block) => (
-            <button
-              key={block.id}
-              type="button"
-              onClick={() => onOpenSection(block.id)}
-              className={`cms-wireframe-block flex w-full flex-col items-start justify-center px-4 py-3 text-left ${HEIGHT_CLASS[block.height]}`}
-            >
-              <span className="font-display text-sm font-semibold tracking-tight text-[var(--cms-ink)] sm:text-base">
-                {block.label}
-              </span>
-              <span className="mt-1 text-xs text-[var(--cms-muted)]">{block.hint}</span>
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }

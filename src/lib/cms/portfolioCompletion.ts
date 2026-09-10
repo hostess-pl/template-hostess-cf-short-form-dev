@@ -51,6 +51,23 @@ function eventImage(row: Record<string, unknown>): string {
   return String(row.imageFile || row.image || '').trim()
 }
 
+function countEventPhotos(rows: unknown[]): number {
+  const refs = new Set<string>()
+  for (const item of rows) {
+    const row = asRecord(item)
+    if (!row) continue
+    const main = eventImage(row)
+    if (main) refs.add(main)
+    if (Array.isArray(row.imageFiles)) {
+      for (const extra of row.imageFiles) {
+        const ref = String(extra || '').trim()
+        if (ref) refs.add(ref)
+      }
+    }
+  }
+  return refs.size
+}
+
 function eventHasTitle(row: Record<string, unknown>): boolean {
   return nonEmpty(row.title)
 }
@@ -73,21 +90,14 @@ function countAssetPhotos(assets: Record<string, unknown> | null): number {
   return n
 }
 
-function localizedCopyLength(
-  doc: Record<string, unknown> | null | undefined,
-  keys: readonly string[],
-): number {
-  const values: unknown[] = []
-  const flat = asRecord(doc?.copy)
-  if (flat) values.push(...keys.map((key) => flat[key]))
-  const byLocale = asRecord(doc?.copyByLocale)
-  if (byLocale) {
-    for (const bucket of Object.values(byLocale)) {
-      const copy = asRecord(bucket)
-      if (copy) values.push(...keys.map((key) => copy[key]))
-    }
+function hasCompleteAboutCopy(doc: Record<string, unknown> | null | undefined): boolean {
+  const complete = (value: unknown) => {
+    const copy = asRecord(value)
+    return Boolean(copy && nonEmpty(copy.aboutLead) && nonEmpty(copy.experienceSummary))
   }
-  return Math.max(0, ...values.map(textLen))
+  if (complete(doc?.copy)) return true
+  const byLocale = asRecord(doc?.copyByLocale)
+  return Boolean(byLocale && Object.values(byLocale).some(complete))
 }
 
 /**
@@ -99,8 +109,6 @@ export function computePortfolioCompletion(
   options: Options = {},
 ): PortfolioCompletion {
   const profile = asRecord(doc?.profile)
-  const copy = asRecord(doc?.copy)
-  const bio = asRecord(doc?.bio)
   const assets = asRecord(doc?.assets)
   const appearance = asRecord(doc?.appearance)
   const mobility = asRecord(doc?.mobility)
@@ -125,13 +133,7 @@ export function computePortfolioCompletion(
     return Boolean(row && eventImage(row))
   })
 
-  const bioLength = Math.max(
-    textLen(bio?.short),
-    localizedCopyLength(doc, ['aboutLead', 'experienceSummary', 'profile']),
-    textLen(copy?.aboutLead),
-    textLen(copy?.experienceSummary),
-    textLen(copy?.profile),
-  )
+  const aboutCopyOk = hasCompleteAboutCopy(doc)
   const langOk = languages.some((l) => nonEmpty(asRecord(l)?.name))
   const jobOk = employment.some((j) => {
     const row = asRecord(j)
@@ -162,9 +164,10 @@ export function computePortfolioCompletion(
   )
 
   const assetPhotoCount = countAssetPhotos(assets)
+  const referencedPhotoCount = Math.max(assetPhotoCount, (hasHero ? 1 : 0) + countEventPhotos(events))
   const uploadedPhotoCount = Math.max(0, Math.floor(options.uploadedPhotoCount || 0))
   const galleryDepthOk =
-    imagedEvents.length >= 2 || assetPhotoCount + uploadedPhotoCount >= 2
+    imagedEvents.length >= 2 || Math.max(referencedPhotoCount, (hasHero ? 1 : 0) + uploadedPhotoCount) >= 2
 
   const milestones: PortfolioMilestone[] = [
     {
@@ -197,7 +200,7 @@ export function computePortfolioCompletion(
     {
       id: 'bio',
       weight: 14,
-      done: bioLength >= 40,
+      done: aboutCopyOk,
       sectionId: 'about',
       labelPl: 'Napisz krótkie bio',
       labelEn: 'Write a short bio',
