@@ -346,6 +346,12 @@ const buildEnv = {
   HOSTING_PLAN: effectiveHostingPlan,
 };
 
+writeFileSync(
+  resolve(projectRoot, 'src/generated/template-release.ts'),
+  'export const TEMPLATE_RELEASE_SHA = ' + JSON.stringify(templateReleaseSha) + ' as string\n',
+  'utf8',
+);
+
 if (templateReleaseSha) buildEnv.TEMPLATE_RELEASE_SHA = templateReleaseSha;
 
 if (isCms) {
