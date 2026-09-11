@@ -116,6 +116,7 @@ export function EditApp({
   const [ok, setOk] = useState('')
   const [saveError, setSaveError] = useState('')
   const [dirty, setDirty] = useState(false)
+  const [saveBlockedReason, setSaveBlockedReason] = useState('')
   const [uploadedPhotoCount, setUploadedPhotoCount] = useState(0)
   const mediaCountLoaded = useRef(false)
   const [passwordGateOpen, setPasswordGateOpen] = useState(needsPasswordSetup || forcePasswordSetup)
@@ -287,6 +288,7 @@ export function EditApp({
       setDirty(false)
     }
     setSection(next as CmsSectionId)
+    setSaveBlockedReason('')
     setOk('')
     setSaveError('')
     setNavOpen(false)
@@ -294,6 +296,10 @@ export function EditApp({
 
   async function save() {
     if (!document) return
+    if (saveBlockedReason) {
+      setSaveError(saveBlockedReason)
+      return
+    }
     setSaving(true)
     setError('')
     setOk('')
@@ -342,6 +348,10 @@ export function EditApp({
       })
     })()
   }, [supabaseAnonKey, supabaseUrl, tourStorageKey])
+
+  const handleStyleValidity = useCallback((valid: boolean, reason: string) => {
+    setSaveBlockedReason(valid ? '' : reason)
+  }, [])
 
   return (
     <div className="cms-root cms-shell" data-cms-theme={theme}>
@@ -500,6 +510,7 @@ export function EditApp({
                 setOk('')
                 setSaveError('')
               }}
+              onValidityChange={handleStyleValidity}
             />
           ) : section === 'account' ? (
             <div className="mx-auto flex max-w-md flex-col gap-6">
@@ -556,7 +567,7 @@ export function EditApp({
               <p
                 className="cms-save-bar__status"
                 data-state={
-                  saving ? 'saving' : saveError ? 'error' : dirty ? 'dirty' : ok ? 'saved' : 'idle'
+                  saving ? 'saving' : saveError || saveBlockedReason ? 'error' : dirty ? 'dirty' : ok ? 'saved' : 'idle'
                 }
                 role="status"
               >
@@ -564,8 +575,8 @@ export function EditApp({
                 <span>
                   {saving
                     ? t.saving
-                    : saveError
-                      ? saveError
+                    : saveError || saveBlockedReason
+                      ? saveError || saveBlockedReason
                       : dirty
                         ? t.unsavedChanges
                         : ok
@@ -577,7 +588,7 @@ export function EditApp({
               </p>
               <button
                 type="button"
-                disabled={saving || loading || !dirty}
+                disabled={saving || loading || !dirty || Boolean(saveBlockedReason)}
                 onClick={() => void save()}
                 className="cms-btn cms-btn-primary"
                 data-tour="save"
