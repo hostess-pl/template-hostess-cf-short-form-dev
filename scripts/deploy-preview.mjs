@@ -346,6 +346,8 @@ const buildEnv = {
   HOSTING_PLAN: effectiveHostingPlan,
 };
 
+if (templateReleaseSha) buildEnv.TEMPLATE_RELEASE_SHA = templateReleaseSha;
+
 if (isCms) {
   buildEnv.PUBLIC_SUPABASE_URL = publicSupabaseUrl;
   buildEnv.PUBLIC_SUPABASE_ANON_KEY = publicSupabaseAnon;
