@@ -1,0 +1,66 @@
+name: Update existing portfolio
+
+on:
+  repository_dispatch:
+    types: [hostess-template-update]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hostess-template-update-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install pinned dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore authoritative content for build fallback
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CMS_SITE_SLUG: ${{ github.event.client_payload.siteSlug }}
+          WORKER_NAME: ${{ github.event.client_payload.workerName }}
+          SITE_URL: https://${{ github.event.client_payload.hostname }}
+        run: node scripts/prepare-site-update.mjs
+
+      - name: Validate release
+        run: |
+          set -euo pipefail
+          pnpm check
+          pnpm test:completion
+          pnpm test:copyByLocale
+          pnpm test:portfolioPalette
+
+      - name: Deploy without mutating customer state
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          SITE_UPDATE_MODE: 'true'
+          PREVIEW_ID: ${{ github.event.client_payload.submissionId }}
+          WORKER_NAME: ${{ github.event.client_payload.workerName }}
+          PLATFORM_HOSTNAME: ${{ github.event.client_payload.hostname }}
+          PUBLIC_CMS_SITE_SLUG: ${{ github.event.client_payload.siteSlug }}
+          CMS_SITE_SLUG: ${{ github.event.client_payload.siteSlug }}
+          HOSTING_PLAN: pro
+          PORTFOLIO_PRODUCT_MODE: short_form
+          TEMPLATE_RELEASE_SHA: ${{ github.event.client_payload.templateSha }}
+          ANALYTICS_ENV: ${{ github.event.client_payload.analyticsEnv }}
+        run: pnpm deploy:preview

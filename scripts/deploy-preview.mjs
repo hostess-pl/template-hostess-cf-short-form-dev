@@ -126,7 +126,7 @@ function putSecret(secretName, value, workerName) {
   return true;
 }
 
-function resolveSessionKvId(workerName) {
+function resolveSessionKvId(workerName, { createIfMissing = true } = {}) {
   const sessionTitle = `${workerName}-session`;
   const list = runCommand('npx wrangler kv namespace list', { captureStdout: true });
   let namespaces = [];
@@ -137,6 +137,8 @@ function resolveSessionKvId(workerName) {
   }
   let sessionId = namespaces.find((n) => n.title === sessionTitle)?.id || '';
   if (sessionId) return sessionId;
+
+  if (!createIfMissing) return '';
 
   console.log(`[deploy:preview] Creating KV ${sessionTitle}`);
   const created = runCommand(`npx wrangler kv namespace create ${JSON.stringify(sessionTitle)}`, {
@@ -162,8 +164,36 @@ function envFlagTrue(value) {
   return ['1', 'true', 'yes'].includes(String(value || '').trim().toLowerCase());
 }
 
+async function verifyUpdatedSite({ siteUrl, expectedRelease, attempts = 12 }) {
+  let lastError = 'health_check_failed';
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const [releaseResponse, loginResponse] = await Promise.all([
+        fetch(`${siteUrl}/api/system/release`, { redirect: 'manual' }),
+        fetch(`${siteUrl}/edit/login`, { redirect: 'manual' }),
+      ]);
+      const release = releaseResponse.ok ? await releaseResponse.json() : null;
+      const releaseMatches = !expectedRelease || release?.templateReleaseSha === expectedRelease;
+      if (releaseResponse.ok && loginResponse.ok && releaseMatches) {
+        return { ok: true, release };
+      }
+      lastError = `release=${releaseResponse.status},login=${loginResponse.status},match=${releaseMatches}`;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5_000));
+  }
+  return { ok: false, error: lastError };
+}
+
 const opsEnv = loadEnvFile(OPS_ENV_PATH);
 const envFile = { ...opsEnv, ...loadEnvFile(resolve(projectRoot, '.env')) };
+const siteUpdateMode = envFlagTrue(process.env.SITE_UPDATE_MODE || envFile.SITE_UPDATE_MODE);
+const templateReleaseSha = String(process.env.TEMPLATE_RELEASE_SHA || '').trim();
+if (siteUpdateMode && !/^[0-9a-f]{40}$/.test(templateReleaseSha)) {
+  console.error('[deploy:preview] SITE_UPDATE_MODE requires a pinned 40-character TEMPLATE_RELEASE_SHA');
+  process.exit(1);
+}
 const hostess = loadHostessJson();
 const workersDevSubdomain = resolveWorkersDevSubdomain(envFile);
 const hostessSubmissionId = loadHostessSubmissionId(hostess);
@@ -179,7 +209,12 @@ const rawId =
   process.argv[2] ||
   'local';
 
-const previewName = previewWorkerName(rawId);
+const explicitUpdateWorkerName = String(process.env.WORKER_NAME || '').trim().toLowerCase();
+if (siteUpdateMode && !/^(preview|live)-[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(explicitUpdateWorkerName)) {
+  console.error('[deploy:preview] SITE_UPDATE_MODE requires a safe explicit preview-* or live-* WORKER_NAME');
+  process.exit(1);
+}
+const previewName = siteUpdateMode ? explicitUpdateWorkerName : previewWorkerName(rawId);
 const normalizedId = previewName.replace(/^preview-/, '');
 const workersDevUrl = buildWorkersDevUrl(previewName, workersDevSubdomain);
 let siteUrl = workersDevUrl;
@@ -188,7 +223,14 @@ let platformFqdn = '';
 const skipPlatformHostname = envFlagTrue(
   process.env.SKIP_PLATFORM_HOSTNAME || envFile.SKIP_PLATFORM_HOSTNAME,
 );
-if (!skipPlatformHostname) {
+if (siteUpdateMode) {
+  platformFqdn = String(process.env.PLATFORM_HOSTNAME || '').trim().toLowerCase();
+  if (!platformFqdn || !/^[a-z0-9][a-z0-9.-]+\.hostesswebs\.pl$/.test(platformFqdn)) {
+    console.error('[deploy:preview] SITE_UPDATE_MODE requires an explicit *.hostesswebs.pl PLATFORM_HOSTNAME');
+    process.exit(1);
+  }
+  siteUrl = `https://${platformFqdn}`;
+} else if (!skipPlatformHostname) {
   const allocEnv = {
     ...process.env,
     ...envFile,
@@ -336,9 +378,10 @@ generated.vars = {
   SUPABASE_TRACKING_ENABLED: trackingFlag,
   PUBLIC_ANALYTICS_ENABLED: trackingFlag,
   ANALYTICS_ENV: analyticsEnv,
+  ...(templateReleaseSha ? { TEMPLATE_RELEASE_SHA: templateReleaseSha } : {}),
 };
 if (isCms) {
-  sessionId = resolveSessionKvId(previewName);
+  sessionId = resolveSessionKvId(previewName, { createIfMissing: !siteUpdateMode });
   if (!sessionId) {
     console.error(`[deploy:preview] Could not resolve SESSION KV for ${previewName}-session`);
     process.exit(1);
@@ -360,7 +403,8 @@ writeFileSync(generatedPath, JSON.stringify(generated, null, 2));
 console.log(`[deploy:preview] Deploying ${previewName} → ${siteUrl}`);
 
 const domainFlag = platformFqdn ? `--domain ${platformFqdn}` : '';
-const deployCmd = `npx wrangler deploy -c dist/server/wrangler.json ${domainFlag}`.trim();
+const safetyFlags = siteUpdateMode ? '--keep-vars --strict' : '';
+const deployCmd = `npx wrangler deploy -c dist/server/wrangler.json ${domainFlag} ${safetyFlags}`.trim();
 
 const deployResult = runCommand(deployCmd, { captureStdout: true });
 
@@ -408,6 +452,12 @@ if (platformFqdn) {
   siteUrl = resolvedUrl;
 }
 
+let reviewClientCode = '';
+let resendTo = '';
+
+if (siteUpdateMode) {
+  console.log('[deploy:preview] Update mode — preserving existing Worker secrets, CMS data, memberships and auth redirects');
+} else {
 const supabaseUrl =
   process.env.SUPABASE_URL ||
   envFile.SUPABASE_URL ||
@@ -428,7 +478,7 @@ const supabaseServiceRoleKey =
     ? process.env.WF_SUPABASE_SERVICE_ROLE_KEY_LEGACY_ILURO ||
       envFile.WF_SUPABASE_SERVICE_ROLE_KEY_LEGACY_ILURO
     : '');
-const reviewClientCode = process.env.REVIEW_CLIENT_CODE || randomBytes(16).toString('hex');
+reviewClientCode = process.env.REVIEW_CLIENT_CODE || randomBytes(16).toString('hex');
 const reviewAdminCode = process.env.REVIEW_ADMIN_CODE || envFile.REVIEW_ADMIN_CODE;
 const reviewAuthSalt =
   process.env.REVIEW_AUTH_SALT ||
@@ -492,16 +542,11 @@ const resendFrom =
   envFile.RESEND_FROM ||
   process.env.WF_RESEND_FROM ||
   envFile.WF_RESEND_FROM;
-const resendTo =
+resendTo =
   process.env.RESEND_TO || envFile.RESEND_TO || hostessEmail;
 putSecret('RESEND_API_KEY', resendApiKey, previewName);
 putSecret('RESEND_FROM', resendFrom, previewName);
 putSecret('RESEND_TO', resendTo, previewName);
-const cmsOpsOwnerEmails =
-  process.env.CMS_OPS_OWNER_EMAILS ||
-  envFile.CMS_OPS_OWNER_EMAILS ||
-  '';
-putSecret('CMS_OPS_OWNER_EMAILS', cmsOpsOwnerEmails, previewName);
 if (!resendApiKey) {
   console.warn('[deploy:preview] RESEND_API_KEY not set — contact form will return email service not configured.');
 } else if (!resendTo) {
@@ -547,6 +592,22 @@ if (isCms) {
     console.warn('[deploy:preview] Ops CMS membership failed (non-fatal):', ops.reason);
   }
 }
+}
+
+if (siteUpdateMode) {
+  const health = await verifyUpdatedSite({ siteUrl, expectedRelease: templateReleaseSha });
+  if (!health.ok) {
+    console.error(`[deploy:preview] Update health check failed (${health.error}); rolling back Worker`);
+    const rollback = runCommand(
+      `npx wrangler rollback --name ${JSON.stringify(previewName)} --message ${JSON.stringify(`Automatic rollback after failed HostessWebs update ${templateReleaseSha || 'unknown'}`)}`,
+    );
+    if (rollback.status !== 0) {
+      console.error('[deploy:preview] CRITICAL: automatic Worker rollback failed');
+    }
+    process.exit(1);
+  }
+  console.log(`[deploy:preview] Update health check passed release=${health.release?.templateReleaseSha || 'unknown'}`);
+}
 
 const deploySummary = {
   previewUrl: siteUrl,
@@ -561,6 +622,8 @@ const deploySummary = {
   cmsSiteSlug: isCms ? cmsSlug : null,
   contactTo: resendTo || null,
   workersDevSubdomain: workersDevSubdomain || null,
+  siteUpdateMode,
+  templateReleaseSha: templateReleaseSha || null,
 };
 
 console.log(`[deploy:preview] Ready: ${siteUrl}`);
