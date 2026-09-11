@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { CmsChromeLocale } from '@/lib/cms/i18n'
 import { colorContrast, isReadableColor, normalizeHexColor } from '@/lib/colorCustomization'
 import {
@@ -12,6 +12,7 @@ type Props = {
   document: Record<string, unknown>
   locale: CmsChromeLocale
   onChange: (next: Record<string, unknown>) => void
+  onValidityChange?: (valid: boolean, reason: string) => void
 }
 type TextRole = 'heading' | 'body' | 'muted'
 
@@ -29,7 +30,7 @@ function firstText(record: Record<string, unknown>, keys: string[], fallback: st
   return fallback
 }
 
-export function StyleEditor({ document, locale, onChange }: Props) {
+export function StyleEditor({ document, locale, onChange, onValidityChange }: Props) {
   const isEn = locale === 'en'
   const branding = asRecord(document.branding)
   const templateKey = branding.templateKey || document.templateKey || ''
@@ -69,25 +70,20 @@ export function StyleEditor({ document, locale, onChange }: Props) {
     onChange({ ...document, branding: { ...branding, ...patch } })
   }
 
-  const setAccessibleTextColor = (raw: string) => {
+  const setTextColor = (raw: string) => {
     const normalized = normalizeHexColor(raw)
     if (!normalized) {
       setColorError(isEn ? 'Enter a full hex color, for example #1A1A1A.' : 'Wpisz pełny kolor HEX, np. #1A1A1A.')
-      return
-    }
-    if (!isReadableColor(normalized, background)) {
-      setColorError(isEn ? 'Choose a color with stronger contrast against the background.' : 'Wybierz kolor o większym kontraście względem tła.')
       return
     }
     setColorError('')
     updateBranding({ [selectedRole.field]: normalized })
   }
 
-  const setAccessibleBackground = (raw: string) => {
+  const setBackground = (raw: string) => {
     const normalized = normalizeHexColor(raw)
-    if (!normalized) return
-    if (Object.values(roles).some((item) => !isReadableColor(item.value, normalized))) {
-      setColorError(isEn ? 'This background would make at least one text style hard to read.' : 'To tło zmniejszyłoby czytelność co najmniej jednego rodzaju tekstu.')
+    if (!normalized) {
+      setColorError(isEn ? 'Enter a full hex color, for example #F4EFE6.' : 'Wpisz pełny kolor HEX, np. #F4EFE6.')
       return
     }
     setColorError('')
@@ -95,6 +91,17 @@ export function StyleEditor({ document, locale, onChange }: Props) {
   }
 
   const ratio = colorContrast(selectedRole.value, background)
+  const unreadableRoles = Object.values(roles).filter((item) => !isReadableColor(item.value, background))
+  const contrastValid = unreadableRoles.length === 0
+  const validationReason = colorError || (contrastValid
+    ? ''
+    : isEn
+      ? `Contrast is too low for: ${unreadableRoles.map((item) => item.label).join(', ')}.`
+      : `Kontrast jest zbyt niski dla: ${unreadableRoles.map((item) => item.label).join(', ')}.`)
+
+  useEffect(() => {
+    onValidityChange?.(!validationReason, validationReason)
+  }, [onValidityChange, validationReason])
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -129,8 +136,8 @@ export function StyleEditor({ document, locale, onChange }: Props) {
         <label className="cms-color-control">
           <span>{isEn ? 'Portfolio background' : 'Tło portfolio'}</span>
           <span className="cms-color-control__inputs">
-            <input type="color" value={background} onChange={(event) => setAccessibleBackground(event.target.value)} aria-label={isEn ? 'Choose background color' : 'Wybierz kolor tła'} />
-            <input key={background} className="cms-input cms-color-control__hex" defaultValue={background} onBlur={(event) => setAccessibleBackground(event.target.value)} aria-label={isEn ? 'Background hex color' : 'Kolor HEX tła'} spellCheck={false} />
+            <input type="color" value={background} onChange={(event) => setBackground(event.target.value)} aria-label={isEn ? 'Choose background color' : 'Wybierz kolor tła'} />
+            <input key={background} className="cms-input cms-color-control__hex" defaultValue={background} onBlur={(event) => setBackground(event.target.value)} aria-label={isEn ? 'Background hex color' : 'Kolor HEX tła'} spellCheck={false} aria-invalid={Boolean(colorError)} />
           </span>
         </label>
       </section>
@@ -144,15 +151,22 @@ export function StyleEditor({ document, locale, onChange }: Props) {
         <label className="cms-color-control mt-4">
           <span>{isEn ? 'Color' : 'Kolor'}</span>
           <span className="cms-color-control__inputs">
-            <input type="color" value={selectedRole.value} onChange={(event) => setAccessibleTextColor(event.target.value)} aria-label={`${selectedRole.label} — ${isEn ? 'choose color' : 'wybierz kolor'}`} />
-            <input key={`${role}-${selectedRole.value}`} className="cms-input cms-color-control__hex" defaultValue={selectedRole.value} onBlur={(event) => setAccessibleTextColor(event.target.value)} aria-label={`${selectedRole.label} — HEX`} spellCheck={false} />
+            <input type="color" value={selectedRole.value} onChange={(event) => setTextColor(event.target.value)} aria-label={`${selectedRole.label} — ${isEn ? 'choose color' : 'wybierz kolor'}`} />
+            <input key={`${role}-${selectedRole.value}`} className="cms-input cms-color-control__hex" defaultValue={selectedRole.value} onBlur={(event) => setTextColor(event.target.value)} aria-label={`${selectedRole.label} — HEX`} spellCheck={false} aria-invalid={Boolean(validationReason)} />
           </span>
         </label>
         <div className="cms-text-preview" style={{ backgroundColor: background, color: selectedRole.value }} data-role={role}>
           <span className="cms-text-preview__eyebrow">{isEn ? 'Preview' : 'Podgląd'}</span>
           <p>{selectedRole.sample}</p>
         </div>
-        <p className="cms-style-contrast" aria-live="polite">{colorError || `${isEn ? 'Contrast' : 'Kontrast'}: ${ratio?.toFixed(1) || '—'}:1 · WCAG AA`}</p>
+        <div className="cms-style-contrast" data-valid={!validationReason} role="status" aria-live="polite">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            {validationReason ? <><path d="M12 8v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><circle cx="12" cy="16.5" r="1" fill="currentColor" /><path d="M10.3 4.6 3.2 17a2 2 0 0 0 1.7 3h14.2a2 2 0 0 0 1.7-3L13.7 4.6a2 2 0 0 0-3.4 0Z" stroke="currentColor" strokeWidth="1.6" /></> : <path d="m5 12 4 4L19 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
+          </svg>
+          <span>{validationReason
+            ? `${validationReason} ${isEn ? 'Choose a more distinct combination before saving.' : 'Wybierz bardziej różniące się kolory przed zapisaniem.'}`
+            : `${isEn ? 'Good contrast' : 'Dobry kontrast'}: ${ratio?.toFixed(1) || '—'}:1 · WCAG AA`}</span>
+        </div>
       </section>
 
       <p className="cms-style-note">{isEn ? 'Save your changes, then use “View site” to see them on your portfolio.' : 'Zapisz zmiany, a następnie kliknij „Zobacz stronę”, aby sprawdzić je w portfolio.'}</p>

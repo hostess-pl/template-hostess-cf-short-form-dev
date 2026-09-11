@@ -27,8 +27,8 @@ export async function requestAccountDeletion(input: AccountDeletionRequest): Pro
       signal: AbortSignal.timeout(120_000),
     })
     if (!response.ok) return { ok: false, error: `upstream_${response.status}` }
-    const result = await response.json().catch(() => ({})) as { ok?: boolean; result?: { ok?: boolean }; error?: string }
-    if (result.ok === false || result.result?.ok === false) return { ok: false, error: result.error || 'account_deletion_failed' }
+    const result = await response.json().catch(() => ({})) as { ok?: boolean; result?: { ok?: boolean; error?: string }; error?: string }
+    if (result.ok === false || result.result?.ok === false) return { ok: false, error: result.result?.error || result.error || 'account_deletion_failed' }
     return { ok: true }
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : 'account_deletion_failed' }
