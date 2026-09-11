@@ -42,6 +42,7 @@ jobs:
       - name: Validate release
         run: |
           set -euo pipefail
+          node scripts/generate-static-assets-manifest.mjs
           pnpm check
           pnpm test:completion
           pnpm test:copyByLocale
