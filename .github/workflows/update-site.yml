@@ -52,8 +52,12 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          PORTFOLIO_PUBLISH_NOTIFY_URL: ${{ secrets.PORTFOLIO_PUBLISH_NOTIFY_URL }}
+          PORTFOLIO_PUBLISH_HMAC_SECRET: ${{ secrets.PORTFOLIO_PUBLISH_HMAC_SECRET }}
           SITE_UPDATE_MODE: 'true'
           PREVIEW_ID: ${{ github.event.client_payload.submissionId }}
           WORKER_NAME: ${{ github.event.client_payload.workerName }}
