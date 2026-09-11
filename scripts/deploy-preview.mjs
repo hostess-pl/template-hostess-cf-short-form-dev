@@ -164,7 +164,7 @@ function envFlagTrue(value) {
   return ['1', 'true', 'yes'].includes(String(value || '').trim().toLowerCase());
 }
 
-async function verifyUpdatedSite({ siteUrl, expectedRelease, attempts = 12 }) {
+async function verifyUpdatedSite({ siteUrl, expectedRelease, expectedSlug, attempts = 12 }) {
   let lastError = 'health_check_failed';
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
@@ -174,10 +174,11 @@ async function verifyUpdatedSite({ siteUrl, expectedRelease, attempts = 12 }) {
       ]);
       const release = releaseResponse.ok ? await releaseResponse.json() : null;
       const releaseMatches = !expectedRelease || release?.templateReleaseSha === expectedRelease;
-      if (releaseResponse.ok && loginResponse.ok && releaseMatches) {
+      const slugMatches = !expectedSlug || release?.siteSlug === expectedSlug;
+      if (releaseResponse.ok && loginResponse.ok && releaseMatches && slugMatches) {
         return { ok: true, release };
       }
-      lastError = `release=${releaseResponse.status},login=${loginResponse.status},match=${releaseMatches}`;
+      lastError = `release=${releaseResponse.status},login=${loginResponse.status},releaseMatch=${releaseMatches},slugMatch=${slugMatches}`;
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error);
     }
@@ -461,6 +462,7 @@ if (platformFqdn) {
 }
 
 let reviewClientCode = '';
+let reviewAdminCode = '';
 let resendTo = '';
 
 if (siteUpdateMode) {
@@ -487,7 +489,7 @@ const supabaseServiceRoleKey =
       envFile.WF_SUPABASE_SERVICE_ROLE_KEY_LEGACY_ILURO
     : '');
 reviewClientCode = process.env.REVIEW_CLIENT_CODE || randomBytes(16).toString('hex');
-const reviewAdminCode = process.env.REVIEW_ADMIN_CODE || envFile.REVIEW_ADMIN_CODE;
+reviewAdminCode = process.env.REVIEW_ADMIN_CODE || envFile.REVIEW_ADMIN_CODE;
 const reviewAuthSalt =
   process.env.REVIEW_AUTH_SALT ||
   envFile.REVIEW_AUTH_SALT ||
@@ -603,7 +605,7 @@ if (isCms) {
 }
 
 if (siteUpdateMode) {
-  const health = await verifyUpdatedSite({ siteUrl, expectedRelease: templateReleaseSha });
+  const health = await verifyUpdatedSite({ siteUrl, expectedRelease: templateReleaseSha, expectedSlug: cmsSlug });
   if (!health.ok) {
     console.error(`[deploy:preview] Update health check failed (${health.error}); rolling back Worker`);
     const rollback = runCommand(
