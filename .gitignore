@@ -8,4 +8,5 @@ dist
 public/cms-assets
 src/generated/*
 !src/generated/public-cms-env.ts
+!src/generated/template-release.ts
 build-log.txt
