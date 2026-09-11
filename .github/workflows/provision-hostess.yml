@@ -61,6 +61,8 @@ jobs:
           WORKERS_DEV_SUBDOMAIN: ${{ secrets.WORKERS_DEV_SUBDOMAIN }}
           REVIEW_WEBHOOK_SECRET: ${{ secrets.REVIEW_WEBHOOK_SECRET }}
           N8N_REVIEW_COMPLETE_URL: ${{ secrets.N8N_REVIEW_COMPLETE_URL }}
+          PORTFOLIO_PUBLISH_NOTIFY_URL: ${{ secrets.PORTFOLIO_PUBLISH_NOTIFY_URL }}
+          PORTFOLIO_PUBLISH_HMAC_SECRET: ${{ secrets.PORTFOLIO_PUBLISH_HMAC_SECRET }}
           PREVIEW_ID: ${{ github.event.client_payload.submissionId }}
           HOSTING_PLAN: ${{ github.event.client_payload.hostingPlan }}
         run: |
