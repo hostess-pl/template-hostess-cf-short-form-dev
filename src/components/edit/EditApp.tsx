@@ -127,12 +127,37 @@ export function EditApp({
   )
   const [tourStep, setTourStep] = useState(0)
   const [tourEarlyAdopter, setTourEarlyAdopter] = useState<TourEarlyAdopter | null>(null)
+  const [lastSectionReady, setLastSectionReady] = useState(false)
   const tourStorageKey = `hw-cms-onboarding-v1:${siteSlug || 'site'}`
+  const lastSectionStorageKey = `hw-cms-last-section:${siteSlug || 'site'}`
 
   useEffect(() => {
     const chrome = readStoredChromeLocale()
     setChromeLocale(chrome)
   }, [])
+
+  useEffect(() => {
+    if (lastSectionReady) return
+    try {
+      if (initialSection === 'dashboard') {
+        const stored = window.localStorage.getItem(lastSectionStorageKey)
+        if (stored && nav.some((item) => item.id === stored)) setSection(stored as CmsSectionId)
+      }
+    } catch {
+      // URL/default section remains available when storage is blocked.
+    } finally {
+      setLastSectionReady(true)
+    }
+  }, [initialSection, lastSectionReady, lastSectionStorageKey, nav])
+
+  useEffect(() => {
+    if (!lastSectionReady) return
+    try {
+      window.localStorage.setItem(lastSectionStorageKey, section)
+    } catch {
+      // Section persistence is optional.
+    }
+  }, [lastSectionReady, lastSectionStorageKey, section])
 
   useEffect(() => {
     if (!document) return

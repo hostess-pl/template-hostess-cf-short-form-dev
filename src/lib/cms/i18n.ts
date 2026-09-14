@@ -1307,13 +1307,13 @@ export function getEventTextRaw(
   const descs = localeBucketMap(event.descriptionByLocale)
   if (locale !== 'pl') {
     return {
-      title: String(titles[locale] || '').trim(),
-      description: String(descs[locale] || '').trim(),
+      title: String(titles[locale] || ''),
+      description: String(descs[locale] || ''),
     }
   }
   return {
-    title: String(titles.pl || event.title || '').trim(),
-    description: String(descs.pl || event.description || '').trim(),
+    title: String(titles.pl || event.title || ''),
+    description: String(descs.pl || event.description || ''),
   }
 }
 

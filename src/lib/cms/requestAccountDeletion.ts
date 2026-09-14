@@ -1,4 +1,5 @@
 import { createHmac } from 'node:crypto'
+import { PORTFOLIO_PUBLISH_HMAC_SECRET, PORTFOLIO_PUBLISH_NOTIFY_URL } from 'astro:env/server'
 import { readEnvString } from '@/lib/runtimeEnv'
 
 export type AccountDeletionRequest = {
@@ -9,9 +10,9 @@ export type AccountDeletionRequest = {
 }
 
 export async function requestAccountDeletion(input: AccountDeletionRequest): Promise<{ ok: boolean; error?: string }> {
-  const publishUrl = (readEnvString('PORTFOLIO_PUBLISH_NOTIFY_URL') || readEnvString('WF_PORTFOLIO_PUBLISH_NOTIFY_URL') || '').trim()
+  const publishUrl = (String(PORTFOLIO_PUBLISH_NOTIFY_URL || '') || readEnvString('PORTFOLIO_PUBLISH_NOTIFY_URL') || readEnvString('WF_PORTFOLIO_PUBLISH_NOTIFY_URL') || '').trim()
   const url = (readEnvString('ACCOUNT_DELETE_URL') || publishUrl.replace(/portfolio-published-notify\/?$/, 'hostess-account-delete')).trim()
-  const secret = (readEnvString('ACCOUNT_DELETE_HMAC_SECRET') || readEnvString('PORTFOLIO_PUBLISH_HMAC_SECRET') || readEnvString('WF_PORTFOLIO_PUBLISH_HMAC_SECRET') || '').trim()
+  const secret = (readEnvString('ACCOUNT_DELETE_HMAC_SECRET') || String(PORTFOLIO_PUBLISH_HMAC_SECRET || '') || readEnvString('PORTFOLIO_PUBLISH_HMAC_SECRET') || readEnvString('WF_PORTFOLIO_PUBLISH_HMAC_SECRET') || '').trim()
   if (!url || !secret) return { ok: false, error: 'account_deletion_not_configured' }
 
   const ts = String(Date.now())

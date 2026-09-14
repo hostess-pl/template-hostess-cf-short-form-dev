@@ -1350,6 +1350,14 @@ html[data-cms-theme='dark'] .cms-modal-backdrop {
   margin-top: 0.5rem;
 }
 
+.cms-delete-modal .cms-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
 .cms-delete-error {
   margin-top: 0.5rem;
   display: grid;
@@ -1365,14 +1373,29 @@ html[data-cms-theme='dark'] .cms-modal-backdrop {
 
 @media (max-width: 479px) {
   .cms-modal.cms-delete-modal {
-    width: 100%;
+    width: calc(100% - 2rem);
     height: auto;
-    max-height: calc(100dvh - max(1rem, env(safe-area-inset-top, 0px)));
-    margin-top: auto;
+    max-height: calc(100dvh - 2rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    margin: auto;
     border: 1px solid var(--cms-line);
-    border-bottom: 0;
-    border-radius: 1rem 1rem 0 0;
-    padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom, 0px));
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+  }
+
+  .cms-delete-modal__header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .cms-delete-modal__icon {
+    display: none;
+  }
+
+  .cms-delete-modal .cms-modal__actions {
+    flex-direction: column-reverse;
+  }
+
+  .cms-delete-modal .cms-modal__actions .cms-btn {
+    width: 100%;
   }
 
   .cms-color-control {
