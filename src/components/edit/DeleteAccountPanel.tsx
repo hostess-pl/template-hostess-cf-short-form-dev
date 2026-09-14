@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { createPortal } from 'react-dom'
 import type { CmsChromeLocale } from '@/lib/cms/i18n'
 import { createSupabaseBrowser } from '@/lib/supabaseAuth'
 
@@ -11,17 +12,25 @@ export function DeleteAccountPanel({ locale, supabaseUrl, supabaseAnonKey }: Pro
   const [confirmation, setConfirmation] = useState('')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
     if (!open) return
+    const root = document.querySelector('.cms-root')
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    root?.setAttribute('data-cms-modal-open', 'true')
     inputRef.current?.focus()
     return () => {
       document.body.style.overflow = previousOverflow
+      root?.removeAttribute('data-cms-modal-open')
     }
   }, [open])
 
@@ -81,8 +90,8 @@ export function DeleteAccountPanel({ locale, supabaseUrl, supabaseAnonKey }: Pro
       </div>
       <button ref={triggerRef} type="button" className="cms-btn cms-btn-danger" onClick={() => setOpen(true)}>{isEn ? 'Delete account and portfolio' : 'Usuń konto i portfolio'}</button>
 
-      {open ? (
-        <div className="cms-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close() }}>
+      {open && mounted && typeof document !== 'undefined' ? createPortal(
+        <div className="cms-modal-backdrop" data-cms-theme={document.querySelector('.cms-root')?.getAttribute('data-cms-theme') || undefined} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close() }}>
           <div ref={dialogRef} className="cms-modal cms-delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" aria-describedby="delete-modal-description" onKeyDown={handleDialogKey}>
             <div className="cms-delete-modal__header">
               <span className="cms-delete-modal__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
@@ -98,7 +107,8 @@ export function DeleteAccountPanel({ locale, supabaseUrl, supabaseAnonKey }: Pro
               <button type="button" className="cms-btn cms-btn-danger" onClick={() => void remove()} disabled={confirmation !== phrase || pending}>{pending ? (isEn ? 'Deleting…' : 'Usuwanie…') : (isEn ? 'Delete forever' : 'Usuń na zawsze')}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </section>
   )

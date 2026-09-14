@@ -222,6 +222,14 @@ test('setEventTextForLocale en edit keeps PL title and shared photo', () => {
   assert.equal(next.events?.[0]?.titleByLocale?.pl, 'Targi Warszawa')
 })
 
+test('getEventTextRaw preserves spaces while an event title is being edited', () => {
+  const event = {
+    title: 'Hostessa ',
+    titleByLocale: { pl: 'Hostessa ' },
+  }
+  assert.equal(getEventTextRaw(event, 'pl').title, 'Hostessa ')
+})
+
 test('migrateCopyByLocale seeds empty EN event text buckets', () => {
   const doc = {
     events: [{ id: 'event-1', title: 'Targi Warszawa', description: 'Opis PL', imageFile: 'a.jpg' }],

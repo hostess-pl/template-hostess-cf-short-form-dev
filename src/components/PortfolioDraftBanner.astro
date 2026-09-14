@@ -176,7 +176,7 @@ const copy =
       </div>
     </div>
     <div class="portfolio-draft-banner__actions">
-      <a class="portfolio-draft-banner__btn portfolio-draft-banner__btn--ghost" href={nextHref}>
+      <a class="portfolio-draft-banner__btn portfolio-draft-banner__btn--ghost" href={nextHref} data-continue-edit>
         {copy.edit}
       </a>
       <button
@@ -690,6 +690,19 @@ const copy =
     }
   }
   loadEarlyAdopter()
+
+  const continueEdit = document.querySelector('[data-continue-edit]')
+  if (continueEdit instanceof HTMLAnchorElement && banner) {
+    try {
+      const slug = banner.getAttribute('data-site-slug') || 'site'
+      const storedSection = localStorage.getItem(`hw-cms-last-section:${slug}`)
+      if (storedSection && /^[a-z-]+$/.test(storedSection)) {
+        continueEdit.href = `/edit/app?section=${encodeURIComponent(storedSection)}`
+      }
+    } catch {
+      // Default next-step link remains available when storage is blocked.
+    }
+  }
 
   const btn = document.getElementById('portfolio-publish-btn')
   const modalEl = document.getElementById('portfolio-publish-modal')
