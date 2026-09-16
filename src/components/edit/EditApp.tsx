@@ -559,6 +559,7 @@ export function EditApp({
               />
               <DeleteAccountPanel
                 locale={chromeLocale}
+                email={email}
                 supabaseUrl={supabaseUrl}
                 supabaseAnonKey={supabaseAnonKey}
               />
