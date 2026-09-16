@@ -3,11 +3,17 @@ import { createPortal } from 'react-dom'
 import type { CmsChromeLocale } from '@/lib/cms/i18n'
 import { createSupabaseBrowser } from '@/lib/supabaseAuth'
 
-type Props = { locale: CmsChromeLocale; supabaseUrl: string; supabaseAnonKey: string }
+type Props = { locale: CmsChromeLocale; email: string; supabaseUrl: string; supabaseAnonKey: string }
 
-export function DeleteAccountPanel({ locale, supabaseUrl, supabaseAnonKey }: Props) {
+const PROTECTED_EMAILS = new Set(['hostesswebs@gmail.com', 'ops@hostesswebs.pl'])
+
+export function DeleteAccountPanel({ locale, email, supabaseUrl, supabaseAnonKey }: Props) {
   const isEn = locale === 'en'
   const phrase = isEn ? 'DELETE FOREVER' : 'USUŃ NA ZAWSZE'
+  const protectedAccount = PROTECTED_EMAILS.has(email.trim().toLowerCase())
+  const deleteButtonLabel = protectedAccount
+    ? (isEn ? 'Deletion unavailable' : 'Usuwanie niedostępne')
+    : (isEn ? 'Delete account and portfolio' : 'Usuń konto i portfolio')
   const [open, setOpen] = useState(false)
   const [confirmation, setConfirmation] = useState('')
   const [pending, setPending] = useState(false)
@@ -87,8 +93,12 @@ export function DeleteAccountPanel({ locale, supabaseUrl, supabaseAnonKey }: Pro
       <div>
         <h2 id="delete-account-heading">{isEn ? 'Delete account' : 'Usuń konto'}</h2>
         <p>{isEn ? 'Permanently remove your portfolio, uploaded files and login account.' : 'Trwale usuń portfolio, przesłane pliki i konto logowania.'}</p>
+        <p className="mt-2 text-xs text-[var(--cms-muted)]">
+          {isEn ? `Signed in as ${email}.` : `Zalogowano jako ${email}.`}
+          {protectedAccount ? (isEn ? ' This operator account is protected. Sign in as the portfolio owner to delete it.' : ' To konto operatora jest chronione. Zaloguj się jako właścicielka portfolio, aby je usunąć.') : null}
+        </p>
       </div>
-      <button ref={triggerRef} type="button" className="cms-btn cms-btn-danger" onClick={() => setOpen(true)}>{isEn ? 'Delete account and portfolio' : 'Usuń konto i portfolio'}</button>
+      <button ref={triggerRef} type="button" className="cms-btn cms-btn-danger" onClick={() => setOpen(true)} disabled={protectedAccount}>{deleteButtonLabel}</button>
 
       {open && mounted && typeof document !== 'undefined' ? createPortal(
         <div className="cms-modal-backdrop" data-cms-theme={document.querySelector('.cms-root')?.getAttribute('data-cms-theme') || undefined} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close() }}>
