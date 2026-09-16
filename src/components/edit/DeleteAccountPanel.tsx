@@ -1,33 +1,36 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { createPortal } from 'react-dom'
 import type { CmsChromeLocale } from '@/lib/cms/i18n'
 import { createSupabaseBrowser } from '@/lib/supabaseAuth'
 
-type Props = { locale: CmsChromeLocale; email: string; supabaseUrl: string; supabaseAnonKey: string }
+type Props = { locale: CmsChromeLocale; supabaseUrl: string; supabaseAnonKey: string }
 
-const PROTECTED_EMAILS = new Set(['hostesswebs@gmail.com', 'ops@hostesswebs.pl'])
-
-export function DeleteAccountPanel({ locale, email, supabaseUrl, supabaseAnonKey }: Props) {
+export function DeleteAccountPanel({ locale, supabaseUrl, supabaseAnonKey }: Props) {
   const isEn = locale === 'en'
   const phrase = isEn ? 'DELETE FOREVER' : 'USUŃ NA ZAWSZE'
-  const protectedAccount = PROTECTED_EMAILS.has(email.trim().toLowerCase())
-  const deleteButtonLabel = protectedAccount
-    ? (isEn ? 'Deletion unavailable' : 'Usuwanie niedostępne')
-    : (isEn ? 'Delete account and portfolio' : 'Usuń konto i portfolio')
   const [open, setOpen] = useState(false)
   const [confirmation, setConfirmation] = useState('')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
     if (!open) return
+    const root = document.querySelector('.cms-root')
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    root?.setAttribute('data-cms-modal-open', 'true')
     inputRef.current?.focus()
     return () => {
       document.body.style.overflow = previousOverflow
+      root?.removeAttribute('data-cms-modal-open')
     }
   }, [open])
 
@@ -84,19 +87,11 @@ export function DeleteAccountPanel({ locale, email, supabaseUrl, supabaseAnonKey
       <div>
         <h2 id="delete-account-heading">{isEn ? 'Delete account' : 'Usuń konto'}</h2>
         <p>{isEn ? 'Permanently remove your portfolio, uploaded files and login account.' : 'Trwale usuń portfolio, przesłane pliki i konto logowania.'}</p>
-        <p className="mt-2 text-xs text-[var(--cms-muted)]">
-          {isEn ? `Signed in as ${email}.` : `Zalogowano jako ${email}.`}
-          {protectedAccount
-            ? (isEn ? ' This operator account is protected. Sign in as the portfolio owner to delete it.' : ' To konto operatora jest chronione. Zaloguj się jako właścicielka portfolio, aby je usunąć.')
-            : null}
-        </p>
       </div>
-      <button ref={triggerRef} type="button" className="cms-btn cms-btn-danger" onClick={() => setOpen(true)} disabled={protectedAccount}>
-        {deleteButtonLabel}
-      </button>
+      <button ref={triggerRef} type="button" className="cms-btn cms-btn-danger" onClick={() => setOpen(true)}>{isEn ? 'Delete account and portfolio' : 'Usuń konto i portfolio'}</button>
 
-      {open ? (
-        <div className="cms-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close() }}>
+      {open && mounted && typeof document !== 'undefined' ? createPortal(
+        <div className="cms-modal-backdrop" data-cms-theme={document.querySelector('.cms-root')?.getAttribute('data-cms-theme') || undefined} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close() }}>
           <div ref={dialogRef} className="cms-modal cms-delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" aria-describedby="delete-modal-description" onKeyDown={handleDialogKey}>
             <div className="cms-delete-modal__header">
               <span className="cms-delete-modal__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
@@ -112,7 +107,8 @@ export function DeleteAccountPanel({ locale, email, supabaseUrl, supabaseAnonKey
               <button type="button" className="cms-btn cms-btn-danger" onClick={() => void remove()} disabled={confirmation !== phrase || pending}>{pending ? (isEn ? 'Deleting…' : 'Usuwanie…') : (isEn ? 'Delete forever' : 'Usuń na zawsze')}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </section>
   )
