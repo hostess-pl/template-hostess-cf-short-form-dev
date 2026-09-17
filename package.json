@@ -23,7 +23,8 @@
     "test:completion": "node --experimental-strip-types scripts/test/portfolioCompletion.test.mjs",
     "test:copyByLocale": "node --experimental-strip-types scripts/test/copyByLocale.test.mjs",
     "test:portfolioPalette": "node --experimental-strip-types scripts/test/portfolioPalette.test.mjs",
-    "test:heicProvision": "node scripts/test/heicProvision.test.mjs"
+    "test:heicProvision": "node scripts/test/heicProvision.test.mjs",
+    "test:cms-regressions": "node scripts/test/cmsPublishedAnalytics.test.mjs && node scripts/test/seedCmsMedia.test.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.0.0",

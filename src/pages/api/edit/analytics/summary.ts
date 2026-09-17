@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro'
 import { jsonError, jsonOk, requireCmsProMember } from '@/lib/cms/access'
 import { getCmsSupabaseAdmin } from '@/lib/cms/supabaseAdmin'
 import { getSessionUser } from '@/lib/supabaseAuth'
+import { resolveDeploymentSiteId } from '@/lib/analyticsSite'
 
 export const prerender = false
 
@@ -55,6 +56,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
   if (!admin) return jsonError(503, 'Database unavailable')
 
   const slug = member.site.slug
+  const siteId = await resolveDeploymentSiteId(admin)
   const portfolioStatus = member.site.portfolio_status || 'published'
   const sinceParam = new URL(request.url).searchParams.get('since')
   const since = sinceParam
@@ -68,7 +70,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       'created_at, event_type, user_hash, locale, device_type, utm_source, page_path, metadata',
     )
     .gte('created_at', since.toISOString())
-    .like('site_id', `${slug}:%`)
+    .eq('site_id', siteId)
     .order('created_at', { ascending: false })
     .limit(5000)
 

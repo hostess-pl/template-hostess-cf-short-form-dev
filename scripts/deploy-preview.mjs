@@ -586,8 +586,9 @@ if (isCms) {
     serviceKey: supabaseServiceRoleKey,
     hostess: loadHostessJson(),
   });
-  if (seed.reason === 'site_error' || seed.reason === 'content_error' || seed.reason === 'lookup_error') {
-    console.warn('[deploy:preview] CMS preview seed failed (non-fatal):', seed.reason);
+  if (['site_error', 'content_error', 'lookup_error', 'media_error'].includes(seed.reason)) {
+    console.error('[deploy:preview] CMS preview seed failed:', seed.reason);
+    process.exit(1);
   }
 } else if (supabaseUrl && supabaseServiceRoleKey) {
   // Non-Pro preview: ops membership only (no Pro content seed / client invite).

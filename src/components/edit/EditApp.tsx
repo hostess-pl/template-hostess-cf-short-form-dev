@@ -470,14 +470,16 @@ export function EditApp({
               }}
             />
             <ThemeIconButton theme={theme} onToggle={toggleTheme} t={t} />
-            <button
-              type="button"
-              className="cms-btn cms-btn-primary"
-              data-tour="publish"
-              onClick={() => setPublishOpen(true)}
-            >
-              {chromeLocale === 'en' ? 'Publish' : 'Opublikuj'}
-            </button>
+            {!hasPublished ? (
+              <button
+                type="button"
+                className="cms-btn cms-btn-primary"
+                data-tour="publish"
+                onClick={() => setPublishOpen(true)}
+              >
+                {chromeLocale === 'en' ? 'Publish' : 'Opublikuj'}
+              </button>
+            ) : null}
             <a
               href="/"
               target="_blank"

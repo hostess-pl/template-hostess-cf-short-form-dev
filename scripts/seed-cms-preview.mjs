@@ -10,12 +10,65 @@
  *      CMS_OPS_OWNER_EMAILS (comma-separated)
  */
 import { createClient } from '@supabase/supabase-js'
+import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { inviteEmailsAsOwners, parseOwnerEmails } from './lib/cms-ops-invite.mjs'
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const MEDIA_BUCKET = 'site-media'
+
+async function persistProvisionedImage(admin, siteId, root, fileName, label) {
+  const filePath = resolve(root, 'src', 'assets', 'images', fileName)
+  let body
+  try {
+    body = await readFile(filePath)
+  } catch (error) {
+    if (error?.code === 'ENOENT') throw new Error(`Missing provisioned image: ${fileName}`)
+    throw error
+  }
+
+  const hash = createHash('sha256').update(body).digest('hex')
+  const objectPath = `${siteId}/provision/${label}-${hash}.jpg`
+  const bucket = admin.storage.from(MEDIA_BUCKET)
+  const { error } = await bucket.upload(objectPath, body, {
+    cacheControl: '31536000',
+    contentType: 'image/jpeg',
+    upsert: true,
+  })
+  if (error) throw new Error(`Could not persist ${fileName}: ${error.message}`)
+
+  const publicUrl = bucket.getPublicUrl(objectPath).data?.publicUrl
+  if (!publicUrl) throw new Error(`Could not resolve persisted image URL: ${fileName}`)
+  return publicUrl
+}
+
+export async function persistProvisionedImages({ admin, siteId, hostess, root = projectRoot }) {
+  const durable = structuredClone(hostess)
+  const heroRef = String(durable?.assets?.hero || '').trim()
+  if (heroRef) {
+    const hero = await persistProvisionedImage(admin, siteId, root, 'hero.jpg', 'hero')
+    durable.assets = { ...(durable.assets || {}), hero }
+  }
+
+  for (const [index, event] of (durable.events || []).entries()) {
+    if (!String(event?.imageFile || '').trim()) continue
+    // provision-from-payload downloads event images sequentially even when event ids have gaps.
+    const eventNumber = String(index + 1)
+    const fileName = `event-${eventNumber}.jpg`
+    event.imageFile = await persistProvisionedImage(
+      admin,
+      siteId,
+      root,
+      fileName,
+      `event-${eventNumber}`,
+    )
+  }
+
+  return durable
+}
 
 function loadEnvFile(filePath) {
   if (!existsSync(filePath)) return {}
@@ -180,12 +233,19 @@ export async function seedCmsPreviewIfNeeded(options = {}) {
     console.log(`[cms:seed-preview] Skip content seed — editor has saved (slug=${slug})`)
     reason = 'editor_owned'
   } else {
+    let durableHostess
+    try {
+      durableHostess = await persistProvisionedImages({ admin, siteId: site.id, hostess })
+    } catch (error) {
+      console.error('[cms:seed-preview] media persistence failed:', error)
+      return { seeded: false, reason: 'media_error', invited: [] }
+    }
     const { error: contentError } = await admin.from('cms_content').upsert(
       {
         site_id: site.id,
         locale: '_',
         section: 'document',
-        data: hostess,
+        data: durableHostess,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'site_id,locale,section' },
